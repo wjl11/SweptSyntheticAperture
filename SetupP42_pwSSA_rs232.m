@@ -5,8 +5,10 @@ numEl = 64; % number of physical elements (64 elements in the P4-2, only half ch
 
 % SA parameters
 SAPRT = 50e3; % time between SA planewave acquisitions
-nFramesSweep = 50;
-rowsPerFrameSA = 4096; 
+rowsPerFrameSA = 4096/2; 
+SAdata.rf = [];
+SAdata.th = [];
+SAdata.t = [];
 
 % B-mode parameters
 nr = 128; % no of ray lines in b-mode scan
@@ -16,7 +18,39 @@ foc_mm = 60;
 endDepth_mm = 80;
 txfnum = 2;
 tPulse = 200; % time between phased array acqs [us]
-c = 1540; 
+c = 1540;
+switch_buff = 10e3;
+
+% Frame buffers
+nframe_bmode = 2;
+nframe_SA = 1;
+
+% Save properties
+save_label = input('Save file label: ','s');
+
+% Turn table and serial parameters
+SERIAL.sweep_range = [5.0 40.0];
+SERIAL.scan_range = [10.0 35.0];
+SERIAL.sweep_limits = [0.0 45.0];
+SERIAL.scan_velocity = 7.0;
+SERIAL.norm_velocity = 2.0;
+SERIAL.step = 1.0;
+SERIAL.acc_fnc = 3;
+% 0 - impulse
+% 1 - flat
+% 2 - ramp
+% 3 - sin 
+if SERIAL.sweep_range(1) < SERIAL.sweep_limits(1) || ...
+        SERIAL.sweep_range(2) > SERIAL.sweep_limits(2) || ...
+        SERIAL.scan_range(1) < SERIAL.sweep_range(1) ||...
+        SERIAL.scan_range(2) > SERIAL.sweep_range(2) ||...
+        SERIAL.scan_range(1) > SERIAL.scan_range(2) ||...
+        SERIAL.sweep_range(1) > SERIAL.sweep_range(2) ||...
+        SERIAL.sweep_limits(1) > SERIAL.sweep_limits(2) 
+    error('Error in TDR sweep bounds.')
+end
+
+SAVE_STATE = [0,0];
 
 % specify media points
 % Media.MP(1,:) = [0,0,100,1.0]; % specify point in media [x,y,z,reflectivity]
@@ -46,7 +80,7 @@ Media.MP(17,:) = [-75,0,120,1.0];
 Media.MP(18,:) = [75,0,120,1.0];
 Media.MP(19,:) = [-15,0,180,1.0];
 Media.numPoints = 19;
-% Media.function = 'movePoints';
+Media.function = 'movePoints';
 
 % specify system parameters
 Resource.Parameters.numTransmit = 128;
@@ -89,16 +123,15 @@ PData.Size(3) = 1;
 PData.Origin = [-(PData.Size(2)/2)*PData.pdelta,0,0];
 
 % b-mode resource and image buffer and image display window
-bmode_nframes = 2; %**** may need to change [edit]
 Resource.RcvBuffer(1).datatype = 'int16';
 Resource.RcvBuffer(1).rowsPerFrame = rowsPerFrameBmode; 
 Resource.RcvBuffer(1).colsPerFrame = Resource.Parameters.numRcvChannels;
-Resource.RcvBuffer(1).numFrames = bmode_nframes; % [edit]
+Resource.RcvBuffer(1).numFrames = nframe_bmode;
 
 Resource.ImageBuffer(1).datatype = 'double';
 Resource.ImageBuffer(1).rowsPerFrame = PData.Size(1); % display all pixels
 Resource.ImageBuffer(1).colsPerFrame = PData.Size(2);
-Resource.ImageBuffer(1).numFrames = bmode_nframes;
+Resource.ImageBuffer(1).numFrames = nframe_bmode;
 
 Resource.DisplayWindow(1).Title = 'Image Display';
 Resource.DisplayWindow(1).pdelta = 0.3;
@@ -113,7 +146,7 @@ Resource.RcvBuffer(2).datatype = 'int16';
 Resource.RcvBuffer(2).rowsPerFrame = rowsPerFrameSA; % number of samples of RF data per channel, default sample rate for A/D 
 % is 4x the center frequency of the probe
 Resource.RcvBuffer(2).colsPerFrame = Resource.Parameters.numRcvChannels;
-Resource.RcvBuffer(2).numFrames = nFramesSweep; % may need to buffer [edit]
+Resource.RcvBuffer(2).numFrames = nframe_SA;
 
 % transmit waveform for both SA and bmode
 TW(1).type = 'parametric';
@@ -132,12 +165,6 @@ TX = repmat(struct('waveform', 1, ...
                    'Steer', [0.0,0.0], ...
                    'Apod', ones(1,numEl), ...  
                    'Delay', zeros(1,numEl)), 1, nr+1); 
-
-% % tx definitions for planewave SA imaging               
-% TX(nr+1) = struct('waveform', 1, ...
-%                    'focus', 0, ... % in wavelengths; 
-%                    'Apod', ones(1,numEl), ...  
-%                    'Delay', computeTXDelays(TX(nr+1)));
 
 % specify unique phased array tx attributes 
 angles = SFormat.theta:SFormat.rayDelta:(SFormat.theta + (nr-1)*SFormat.rayDelta);
@@ -238,32 +265,22 @@ Process(2).classname = 'External';
 Process(2).method = 'P4_2_save_bmode';
 Process(2).Parameters = {'srcbuffer','receive',...
     'srcbufnum',1,...
-    'srcframenum',0,...
+    'srcframenum',0,... % 0 = all frames, -1 = last frame
     'dstbuffer','none'};
 
 Process(3).classname = 'External';
 Process(3).method = 'P4_2_save_SA';
 Process(3).Parameters = {'srcbuffer','receive',...
     'srcbufnum',2,...
-    'srcframenum',0,...
+    'srcframenum',0,... % 0 = all frames, -1 = last frame
     'dstbuffer','none'};
 
-% potential method for triggering frame acq with rs232 pulse [edit]
-% Process(4).classname = 'External';
-% Process(4).method = 'wait_rs232';
-% Process(4).Parameters = {'srcbuffer','none',...
-%     'srcbufnum',
-
-n_process = 3;
-% process for each SA frame
-for i = 1:Resource.RcvBuffer(2).numFrames
-    Process(n_process+i).classname = 'External';
-    Process(n_process+i).method = 'P4_2_process_SA';
-    Process(n_process+i).Parameters = {'srcbuffer','receive',... % name of buffer to process
-        'srcbufnum',2,... 
-        'srcframenum',i,...   
-        'dstbuffer','none'}; 
-end
+Process(4).classname = 'External';
+Process(4).method = 'P4_2_image_SA';
+Process(4).Parameters = {'srcbuffer','receive',...
+    'srcbufnum',2,...
+    'srcframenum',-1,... % 0 = all frames, -1 = last frame
+    'dstbuffer','none'};
 
 % Specify SeqControl structure arrays.
 %  - Jump back to start.
@@ -350,9 +367,18 @@ Event(n).process = 0;
 Event(n).seqControl = 3; % jump back to event 2 to continue b-mode imaging 
 n = n+1;
 
-bmode_end = n;
-
 %*************************** save b-mode frame ****************************
+bmode_end = n;
+Event(n).info = 'Buffer b-mode acquisition';
+Event(n).tx = 0;         
+Event(n).rcv = 0;        
+Event(n).recon = 0;      
+Event(n).process = 0;    
+Event(n).seqControl = [nsc];
+SeqControl(nsc).command = 'noop';
+SeqControl(nsc).argument = switch_buff;
+nsc = nsc+1;
+
 for j = 1:nr                 
     Event(n).info = 'Acquire ray line';
     Event(n).tx = j;         
@@ -383,16 +409,6 @@ SeqControl(nsc+1).argument = nsc-1;
 nsc = nsc+2;
 n = n+1;
 
-Event(n).info = 'Save b-mode image';
-Event(n).tx = 0; 
-Event(n).rcv = 0; 
-Event(n).recon = 0; 
-Event(n).process = 2; % process
-Event(n).seqControl = nsc;
-SeqControl(nsc).command = 'returnToMatlab';
-nsc = nsc+1;
-n = n+1;
-
 %*********************** plane wave SA acquisition ************************
 SA_start = n;
 for i = 1:Resource.RcvBuffer(2).numFrames
@@ -405,20 +421,24 @@ for i = 1:Resource.RcvBuffer(2).numFrames
         SeqControl(nsc).command = 'transferToHost';
         nsc = nsc+1;
     n = n+1;
-    
-    Event(n).info = 'Call external Processing function';
-    Event(n).tx = 0;
-    Event(n).rcv = 0;
-    Event(n).recon = 0;
-    Event(n).process = n_process+i;
-    Event(n).seqControl = [nsc nsc+1];
-        SeqControl(nsc).command = 'waitForTransferComplete';
-        SeqControl(nsc).argument = nsc-1;
-        SeqControl(nsc+1).command = 'sync';
-        nsc = nsc+2;
-    n = n+1;
 end
+    
+Event(n).info = 'Call external Processing function';
+Event(n).tx = 0;
+Event(n).rcv = 0;
+Event(n).recon = 0;
+Event(n).process = 4;
+Event(n).seqControl = [nsc nsc+1 nsc+2];
+    SeqControl(nsc).command = 'waitForTransferComplete';
+    SeqControl(nsc).argument = nsc-1;
+    SeqControl(nsc+1).command = 'sync';
+    SeqControl(nsc+2).command = 'returnToMatlab';
+    nsc = nsc+3;
+n = n+1;
 
+% Save SA and b-mode frames together after sweep finished
+
+save_start = n;
 Event(n).info = 'Save SA frames'; 
 Event(n).tx = 0;         
 Event(n).rcv = 0;        
@@ -429,21 +449,49 @@ SeqControl(nsc).command = 'returnToMatlab';
 nsc = nsc+1;
 n = n+1;
 
-Event(n).info = 'Jump back to SA';
+Event(n).info = 'Save b-mode image';
+Event(n).tx = 0; 
+Event(n).rcv = 0; 
+Event(n).recon = 0; 
+Event(n).process = 2; % process
+Event(n).seqControl = nsc;
+SeqControl(nsc).command = 'returnToMatlab';
+nsc = nsc+1;
+n = n+1;
+
+Event(n).info = 'Jump back to b-mode frame';
 Event(n).tx = 0;        % no TX
 Event(n).rcv = 0;       % no Rcv
 Event(n).recon = 0;     % no Recon
 Event(n).process = 0; 
 Event(n).seqControl = nsc;
     SeqControl(nsc).command = 'jump';
-    SeqControl(nsc).argument = SA_start;
+    SeqControl(nsc).argument = bmode_end;
     nsc = nsc+1;
 n = n+1;
 
 %************************ GUI elements ************************************
 
-UI(1).Control = {'UserB1','Style','VsToggleButton','Tag','toggleSA','Label','Toggle SA'};
+UI(1).Control = {'UserC3','Style','VsToggleButton','Tag','toggleSA','Label','Toggle SA'};
 UI(1).Callback = text2cell('%CB#1');
+
+UI(2).Control = {'UserC2','Style','VsPushButton','Tag','testSweep','Label','Test Sweep'};
+UI(2).Callback = text2cell('%CB#2');
+
+UI(3).Control = {'UserB1','Style','VsPushButton','Tag','closePort','Label','Clear RS232'};
+UI(3).Callback = text2cell('%CB#3');
+
+UI(4).Control = {'UserC1','Style','VsPushButton','Tag','abortSweep','Label','Abort Sweep'};
+UI(4).Callback = text2cell('%CB#4');
+
+UI(5).Control = {'UserB4','Style','VsPushButton','Tag','stepCW','Label','Step CW'};
+UI(5).Callback = text2cell('%CB#5');
+
+UI(6).Control = {'UserB3','Style','VsPushButton','Tag','stepCCW','Label','Step CCW'};
+UI(6).Callback = text2cell('%CB#6');
+
+UI(7).Control = {'UserB2','Style','VsPushButton','Tag','setOrigin','Label','Set Origin'};
+UI(7).Callback = text2cell('%CB#7');
 
 %************************ output VSX **************************************
 scriptName = 'P4-2_planewaveSSA';
@@ -455,3 +503,33 @@ return
 toggleSACallback(hObject,eventdata)
 return
 %CB#1
+
+%CB#2
+testSweepCallback(hObject,eventdata)
+return
+%CB#2
+
+%CB#3
+closeSerialCallback(hObject,eventdata)
+return
+%CB#3
+
+%CB#4
+abortSweepCallback(hObject,eventdata)
+return
+%CB#4
+
+%CB#5
+stepCWCallback(hObject,eventdata)
+return
+%CB#5
+
+%CB#6
+stepCCWCallback(hObject,eventdata)
+return
+%CB#6
+
+%CB#7
+setOriginCallback(hObject,eventdata)
+return
+%CB#7

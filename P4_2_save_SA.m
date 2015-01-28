@@ -1,15 +1,31 @@
 function P4_2_save_SA(RData)
-persistent nframe
+SAVE_STATE = evalin('base','SAVE_STATE');
+SAdata = evalin('base','SAdata');
+label = evalin('base','save_label');
+persistent nframeSA
 
-if isempty(nframe)
-    nframe = 1;
+if isempty(nframeSA)
+    nframeSA = 1;
 end
 
-filename = ['SA_frame_' num2str(nframe) '.mat'];
+filename = ['SA_frame_' label '_' num2str(nframeSA) '.mat'];
 disp(['Saving SA frame to ' filename]);
-save(filename,'RData');
+try
+    % save(filename,'SAdata');
+    SAVE_STATE(2) = 1;
+catch
+    error('Failed to save SA RF.');
+end
 
-nframe = nframe+1;
+clear SAdata
+SAdata.rf = [];
+SAdata.th = [];
+SAdata.t = [];
+
+assignin('base','SAdata',SAdata);
+assignin('base','SAVE_STATE',SAVE_STATE);
+
+nframeSA = nframeSA+1;
 
 
 
