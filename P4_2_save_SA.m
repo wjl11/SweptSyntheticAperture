@@ -11,7 +11,7 @@ end
 filename = ['SA_frame_' label '_' num2str(nframeSA) '.mat'];
 disp(['Saving SA frame to ' filename]);
 try
-    % save(filename,'SAdata');
+    save(filename,'SAdata');
     SAVE_STATE(2) = 1;
 catch
     error('Failed to save SA RF.');

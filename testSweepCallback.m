@@ -82,8 +82,8 @@ else
 
     cmd = ['GoTo ' tt_dir ' ' num2str(sweep_range(1))];
     disp(cmd)
-    disp('*** Press any key to send command ***')
-    pause()
+%     disp('*** Press any key to send command ***')
+%     pause()
     fprintf(s_port,cmd);
     if strcmpi(fscanf(s_port),'Ok')
     else error('Failed to return home. Aborting operation.')
@@ -108,8 +108,8 @@ end
 % move tdr to opposite side
 cmd = ['GoTo ' tt_dir ' ' num2str(dest)];
 disp(cmd)
-disp('*** Press any key to send command ***')
-pause()
+% disp('*** Press any key to send command ***')
+% pause()
 fprintf(s_port,cmd);
 if strcmpi(fscanf(s_port),'Ok')
 else error('Failed to return home. Aborting operation.')

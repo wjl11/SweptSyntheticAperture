@@ -127,8 +127,8 @@ switch state
         % move tdr to home position
         cmd = ['GoTo ' tt_dir ' ' num2str(sweep_range(1))];
         disp(cmd)
-        disp('*** Press any key to send command ***')
-        pause()
+%         disp('*** Press any key to send command ***')
+%         pause()
         fprintf(s_port,cmd);
         if strcmpi(fscanf(s_port),'Ok')
         else error('Failed to return home. Aborting operation.')
@@ -154,8 +154,8 @@ switch state
         tt_dir = 'CCW';
         cmd = ['GoTo ' tt_dir ' ' num2str(sweep_range(2))];
         disp(cmd)
-        disp('*** Press any key to send command ***')
-        pause()
+%         disp('*** Press any key to send command ***')
+%         pause()
         fprintf(s_port,cmd);    
 end
 

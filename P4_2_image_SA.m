@@ -123,8 +123,8 @@ if tt_pos == sweep_range(1) || tt_pos == sweep_range(2)
                 cmd = ['GoTo ' tt_dir ' ' num2str(sweep_range(1))];
             end
             disp(cmd)
-            disp('*** Press any key to send command ***')
-            pause()
+%             disp('*** Press any key to send command ***')
+%             pause()
 
             % move to next position
             fprintf(s_port,cmd);
