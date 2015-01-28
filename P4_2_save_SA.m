@@ -19,7 +19,6 @@ end
 
 clear SAdata
 SAdata.rf = [];
-SAdata.th = [];
 SAdata.t = [];
 
 assignin('base','SAdata',SAdata);

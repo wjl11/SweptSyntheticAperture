@@ -4,11 +4,11 @@ maxVoltage = 50;
 numEl = 64; % number of physical elements (64 elements in the P4-2, only half channels of vsx used)
 
 % SA parameters
-SAPRT = 160e3; % time between SA planewave acquisitions
+SAPRT = 50e3; % time between SA planewave acquisitions
 rowsPerFrameSA = 4096; 
 SAdata.rf = [];
-SAdata.th = [];
 SAdata.t = [];
+SAframes = 50;
 
 % B-mode parameters
 nr = 128; % no of ray lines in b-mode scan
@@ -17,8 +17,8 @@ PRF = 10; % time between b-mode frames
 foc_mm = 100;
 endDepth_mm = 150;
 txfnum = 2;
-tPulse = 226; % time between phased array acqs [us]
-c = 1540;
+tPulse = 226+12; % time between phased array acqs [us]
+c = 1490;
 switch_buff = 10e3;
 
 % Frame buffers
@@ -34,7 +34,7 @@ SERIAL.scan_range = [10.0 35.0];
 SERIAL.sweep_limits = [0.0 45.0];
 SERIAL.scan_velocity = 5.0;
 SERIAL.norm_velocity = 2.0;
-SERIAL.step = 5.0;
+SERIAL.step = 1.0;
 SERIAL.acc_fnc = 3;
 % 0 - impulse
 % 1 - flat
@@ -84,7 +84,7 @@ Media.function = 'movePoints';
 
 % specify system parameters
 Resource.Parameters.numTransmit = 128;
-Resource.Parameters.numRcvChannels = 256; % no of receive channels for 4 board VDAS unit
+Resource.Parameters.numRcvChannels = 256; % no of receive channels for 4 board VDAS unit (changed from 128 to 256 for vantage system)
 % Resource.Parameters.connector = 1; % tdr connector to use for 4 board VDAS unit
 Resource.Parameters.speedOfSound = c;
 Resource.Parameters.simulateMode = 0;
@@ -305,7 +305,11 @@ SeqControl(5).argument = 1;
 SeqControl(6).command = 'timeToNextAcq';
 SeqControl(6).argument = SAPRT;
 % SeqControl(6).argument = round(1/SAPRF*1e6 - 128*tPulse); % ****  SAPRF not valid here [edit] 
-nsc = 7;
+
+%
+SeqControl(7).command = 'triggerOut';
+
+nsc = 8;
 
 % ****************** guidance b mode imaging routine **********************
 n = 1;
@@ -412,6 +416,14 @@ n = n+1;
 %*********************** plane wave SA acquisition ************************
 SA_start = n;
 for i = 1:Resource.RcvBuffer(2).numFrames
+    Event(n).info = 'Send trigger out.';
+    Event(n).tx = 0;
+    Event(n).rcv = 0; 
+    Event(n).recon = 0; 
+    Event(n).process = 0; 
+    Event(n).seqControl = 7;
+    n = n+1;
+    
     Event(n).info = 'Acquire SA RF Data.';
     Event(n).tx = nr+1;
     Event(n).rcv = i+nr*Resource.RcvBuffer(1).numFrames; 
@@ -432,8 +444,7 @@ Event(n).seqControl = [nsc nsc+1 nsc+2];
     SeqControl(nsc).command = 'waitForTransferComplete';
     SeqControl(nsc).argument = nsc-1;
     SeqControl(nsc+1).command = 'sync';
-    SeqControl(nsc+2).command = 'returnToMatlab';
-    nsc = nsc+3;
+    nsc = nsc+2;
 n = n+1;
 
 % Save SA and b-mode frames together after sweep finished
@@ -466,13 +477,13 @@ Event(n).recon = 0;     % no Recon
 Event(n).process = 0; 
 Event(n).seqControl = nsc;
     SeqControl(nsc).command = 'jump';
-    SeqControl(nsc).argument = bmode_end;
+    SeqControl(nsc).argument = bmode_start;
     nsc = nsc+1;
 n = n+1;
 
 %************************ GUI elements ************************************
 
-UI(1).Control = {'UserC3','Style','VsToggleButton','Tag','toggleSA','Label','Toggle SA'};
+UI(1).Control = {'UserC3','Style','VsPushButton','Tag','toggleSA','Label','Toggle SA'};
 UI(1).Callback = text2cell('%CB#1');
 
 UI(2).Control = {'UserC2','Style','VsPushButton','Tag','testSweep','Label','Test Sweep'};
@@ -500,7 +511,7 @@ save(scriptName);
 
 return 
 %CB#1
-toggleSACallback(hObject,eventdata)
+startSACallback(hObject,eventdata)
 return
 %CB#1
 
