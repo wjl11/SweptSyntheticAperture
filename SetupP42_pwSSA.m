@@ -12,14 +12,14 @@ numEl = 64; % number of physical elements (64 elements in the P4-2, only half ch
 ssaPRT = 1e3; % time between SSA planewave acquisitions
 disp(['Plane wave SA frame rate: ' num2str(1/(ssaPRT*1e-3)) ' kHz']);
 rowsPerFrameSA = 4096; 
-rs232wait = 0; % wait time for rs232 sweep command [ms] (max at 104.8 ms)
+% rs232wait = ; %
 ssaEndDepthMM = 150;
 ssaStartDepthMM =[];
 
 % planewave SSA parameters
 
 % angled planewave SSA paramters
-pwAngles = [-20:20:20];
+pwAngles = [-10:10:10];
 na = length(pwAngles);
 
 % bmode parameters
@@ -60,7 +60,7 @@ if SERIAL.sweep_range(1) < SERIAL.sweep_limits(1) || ...
 end
 
 %calculation of frames per sweep
-ssaFrames = round(((SERIAL.sweep_range(2)-SERIAL.sweep_range(1))/360.0)/(SERIAL.scan_velocity/60)/(ssaPRT*1e-6))+500;
+ssaFrames = round(((SERIAL.sweep_range(2)-SERIAL.sweep_range(1))/360.0)/(SERIAL.scan_velocity/60)/(ssaPRT*1e-6))+550;
 disp(['SA frames per acquisition: ' num2str(ssaFrames)])
 
 % Save properties
@@ -131,7 +131,7 @@ Trans.maxHighVoltage = maxVoltage;
 aperture = numEl*Trans.spacing;
 SFormat(1).transducer = 'P4-2';
 SFormat(1).scanFormat = 'VAPX'; 
-SFormat(1).theta = -pi/4;
+SFormat(1).theta = -pi/8;
 SFormat(1).radius = (aperture/2)/tan(-SFormat(1).theta); % dist. to virt. apex
 SFormat(1).numRays = nr;      % no. of Rays
 SFormat(1).FirstRayLoc = Trans.ElementPos(1,1:3);   % x,y,z
@@ -449,7 +449,7 @@ SeqControl(5).argument = ssaPRT;
 
 % wait time for rs232 command [edit] disabled
 SeqControl(6).command = 'noop';
-SeqControl(6).argument = rs232wait;
+SeqControl(6).argument = 524287;
 
 % trigger for SSA acq
 SeqControl(7).command = 'triggerOut'; 
@@ -696,13 +696,27 @@ Event(n).process = 0;
 Event(n).seqControl = 3; % switch to SA profile
 n = n+1;
 
-% Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
-% Event(n).tx = 0;         
-% Event(n).rcv = 0;       
-% Event(n).recon = 0;      
-% Event(n).process = 0;
-% Event(n).seqControl = 6; 
-% n = n+1;
+Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 6; 
+n = n+1;
+Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 6; 
+n = n+1;
+Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 6; 
+n = n+1;
 
 SSA_loop = n;
 for i = 1:Resource.RcvBuffer(2).numFrames
@@ -873,13 +887,27 @@ Event(n).process = 0;
 Event(n).seqControl = 3; % switch to SA profile
 n = n+1;
 
-% Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
-% Event(n).tx = 0;         
-% Event(n).rcv = 0;       
-% Event(n).recon = 0;      
-% Event(n).process = 0;
-% Event(n).seqControl = 6; 
-% n = n+1;
+Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 6; 
+n = n+1;
+Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 6; 
+n = n+1;
+Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 6; 
+n = n+1;
 
 steerSSA_loop = n;
 j=1;

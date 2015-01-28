@@ -17,7 +17,6 @@ if rs232Toggle == 1
     if strcmpi(fscanf(s_port),'Ok')
     else error('Failed to configure velocity. Aborting operation.')
     end
-    pause(0.5)
     % get current position of tdr
     fprintf(s_port, 'Get Position');
     tt_pos = str2double(fscanf(s_port));
