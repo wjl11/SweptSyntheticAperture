@@ -1,3 +1,4 @@
+% REV: 12/12/14 (in progress to add focused tx)
 clear all; close all;
 addpath(genpath('/home/wjl11/Matlab Simulator/'));
 % simulation mode y/n
@@ -18,9 +19,12 @@ ssaStartDepthMM =[];
 
 % planewave SSA parameters
 
-% angled planewave SSA paramters
+% angled planewave SSA parameters
 pwAngles = [-10:10:10];
 na = length(pwAngles);
+
+% focused planewave SSA parameters
+ssaFocusMM = 90;
 
 % bmode parameters
 nr = 128; % no of ray lines in b-mode scan
@@ -233,7 +237,7 @@ TX = repmat(struct('waveform', 1, ...
                    'focus', 0, ... % in wavelengths; 
                    'Steer', [0,0], ...
                    'Apod', ones(1,numEl), ...  
-                   'Delay', zeros(1,numEl)), 1, nr+1+na); 
+                   'Delay', zeros(1,numEl)), 1, nr+1+na+1); 
 
 % specify phased array bmode tx attributes 
 bmodeAngles = SFormat(1).theta:SFormat(1).rayDelta:(SFormat(1).theta + (nr-1)*SFormat(1).rayDelta);
@@ -253,6 +257,11 @@ for n = 1:na
     TX(n+nr+1).Steer = [degtorad(pwAngles(n)),0.0]; %[edit] currently in radians
     TX(n+nr+1).Delay = computeTXDelays(TX(n+nr+1));
 end
+
+% specify focused tx attributes
+ssa_foc = round(saFocusMM/1000/(c/(Trans.frequency*1e6)));
+TX(nr+na+2).focus = ssa_foc;
+TX(nr+na+2).Delay = computeTXDelays(Tx(nr+na+2));
 
 % specify transmit power controllers (optional)
 TPC(1).name = 'B-mode';
@@ -302,7 +311,7 @@ for i = 1:Resource.RcvBuffer(1).numFrames
     Receive(k).bufnum = 1; 
 end
 
-% receive attributes for SA (1 acq for multiple frames to be post-processed)
+% receive attributes for SSA (1 acq for multiple frames to be post-processed)
 for i = 1:Resource.RcvBuffer(2).numFrames
     k = i+(nr+1)*Resource.RcvBuffer(1).numFrames;
     Receive(k).startDepth = SFormat(2).startDepth;
@@ -636,7 +645,6 @@ Event(n).seqControl = nsc;
 n = n+1;
 
 %*********************** planewave SSA acquisition ************************
-% 
 SSA_acq = n;
 
 % 1st bmode frame before sweep
@@ -678,7 +686,7 @@ n = n+1;
 
 % start sweep and take SSA frames
 
-Event(n).info = 'Trigger sweep';
+Event(n).info = 'Trigger probe sweep';
 Event(n).tx = 0;         
 Event(n).rcv = 0;       
 Event(n).recon = 0;      
@@ -720,6 +728,7 @@ n = n+1;
 
 SSA_loop = n;
 for i = 1:Resource.RcvBuffer(2).numFrames
+    if i > 1
     Event(n).info = 'Send trigger out.';
     Event(n).tx = 0;
     Event(n).rcv = 0; 
@@ -737,6 +746,7 @@ for i = 1:Resource.RcvBuffer(2).numFrames
         SeqControl(nsc).command = 'transferToHost';
         nsc = nsc+1;
     n = n+1;
+    end
     
 %     Event(n).info = 'debug';
 %     Event(n).tx = 0;
@@ -869,7 +879,7 @@ Event(n).seqControl = [nsc,nsc+1]; % wait for data to be transferred, mark proce
 n = n+1;
 
 % start sweep and take SSA frames
-Event(n).info = 'Trigger sweep';
+Event(n).info = 'Trigger probe sweep';
 Event(n).tx = 0;         
 Event(n).rcv = 0;       
 Event(n).recon = 0;      
@@ -913,6 +923,7 @@ steerSSA_loop = n;
 j=1;
 steerAngles = zeros(1,Resource.RcvBuffer(2).numFrames);
 for i = 1:Resource.RcvBuffer(2).numFrames
+    if i > 1
     Event(n).info = 'Send trigger out.';
     Event(n).tx = 0;
     Event(n).rcv = 0; 
@@ -931,9 +942,10 @@ for i = 1:Resource.RcvBuffer(2).numFrames
         nsc = nsc+1;
     n = n+1;
     
-    steerAngles(i) = pwAngles(j); % save angles of scan
+    steerAngles(i-1) = pwAngles(j); % save angles of scan
     j = j+1;
     if j > na; j = 1; end
+    end
 end
 
 Event(n).info = 'Wait and sync.';
@@ -1016,7 +1028,192 @@ Event(n).seqControl = nsc;
     nsc = nsc+1;
 n = n+1;
 
+%*********************** focused SSA acquisition ****************
+focSSA_acq = n;
+
+% 1st bmode frame before sweep
+Event(n).info = 'Switch to b-mode acquire';
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 4; % switch to b-mode profile
+n = n+1;
+
+for j = 1:nr                 
+    Event(n).info = 'Acquire ray line';
+    Event(n).tx = j;         
+    Event(n).rcv = j+(nr+1)*Resource.RcvBuffer(1).numFrames+Resource.RcvBuffer(2).numFrames;        % use rcv for only single frame   
+    Event(n).recon = 0;      
+    Event(n).process = 0;    
+    Event(n).seqControl = 1; % seqCntrl
+    n = n+1;
+end
+Event(n-1).seqControl = [2,nsc];
+    SeqControl(nsc).command = 'transferToHost'; % transfer frame to host buffer
+    SeqControl(nsc).condition = 'waitForProcessing'; % wait for the channel to be processed
+    SeqControl(nsc).argument = nsc;
+    nsc = nsc+1;
+
+Event(n).info = 'Wait for transfer complete';
+Event(n).tx = 0;         
+Event(n).rcv = 0;        
+Event(n).recon = 0;      
+Event(n).process = 0;    
+Event(n).seqControl = [nsc,nsc+1]; % wait for data to be transferred, mark processed
+    SeqControl(nsc).command = 'waitForTransferComplete';
+    SeqControl(nsc).argument = nsc-1;
+    SeqControl(nsc+1).command = 'markTransferProcessed';
+    SeqControl(nsc+1).argument = nsc-1;
+    nsc = nsc+2;
+n = n+1;
+
+% start sweep and take SSA frames
+Event(n).info = 'Trigger probe sweep';
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 6;
+Event(n).seqControl = nsc;
+    SeqControl(nsc).command = 'returnToMatlab';
+    nsc = nsc+1;
+n = n+1;
+
+Event(n).info = 'Switch to SA acquire';
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 3; % switch to SA profile
+n = n+1;
+
+Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 6; 
+n = n+1;
+Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 6; 
+n = n+1;
+Event(n).info = 'Wait for turn table command'; % uncomment for rs232 wait
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 6; 
+n = n+1;
+
+focSSA_loop = n;
+for i = 1:Resource.RcvBuffer(2).numFrames
+    if i > 1
+    Event(n).info = 'Send trigger out.';
+    Event(n).tx = 0;
+    Event(n).rcv = 0; 
+    Event(n).recon = 0; 
+    Event(n).process = 0; 
+    Event(n).seqControl = 7; 
+    n = n+1;
+    
+    Event(n).info = 'Acquire SA RF Data.';
+    Event(n).tx = nr+na+2;
+    Event(n).rcv = i+(nr+1)*Resource.RcvBuffer(1).numFrames; 
+    Event(n).recon = 0; % no reconstruction
+    Event(n).process = 0; % no processing
+    Event(n).seqControl = [5,nsc]; % wait acq time transfer data to host
+        SeqControl(nsc).command = 'transferToHost';
+        nsc = nsc+1;
+    n = n+1;
+    end
+end
+    
+Event(n).info = 'Wait and sync.';
+Event(n).tx = 0;
+Event(n).rcv = 0;
+Event(n).recon = 0;
+Event(n).process = 0;
+Event(n).seqControl = [nsc nsc+1 8];
+    SeqControl(nsc).command = 'waitForTransferComplete';
+    SeqControl(nsc).argument = nsc-1;
+    SeqControl(nsc+1).command = 'sync';
+    nsc = nsc+2;
+n = n+1;
+
+% 2nd bmode frame after sweep
+Event(n).info = 'Switch to b-mode acquire';
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 4; % switch to b-mode profile
+n = n+1;
+
+for j = 1:nr                 
+    Event(n).info = 'Acquire ray line';
+    Event(n).tx = j;         
+    Event(n).rcv = j+nr+(nr+1)*Resource.RcvBuffer(1).numFrames+Resource.RcvBuffer(2).numFrames;        % use rcv for only single frame   
+    Event(n).recon = 0;      
+    Event(n).process = 0;    
+    Event(n).seqControl = 1; % seqCntrl
+    n = n+1;
+end
+Event(n-1).seqControl = [2,nsc];
+    SeqControl(nsc).command = 'transferToHost'; % transfer frame to host buffer
+    SeqControl(nsc).condition = 'waitForProcessing'; % wait for the channel to be processed
+    SeqControl(nsc).argument = nsc;
+    nsc = nsc+1;
+
+Event(n).info = 'Wait for transfer complete';
+Event(n).tx = 0;         
+Event(n).rcv = 0;        
+Event(n).recon = 0;      
+Event(n).process = 0;    
+Event(n).seqControl = [nsc,nsc+1]; % wait for data to be transferred, mark processed
+    SeqControl(nsc).command = 'waitForTransferComplete';
+    SeqControl(nsc).argument = nsc-1;
+    SeqControl(nsc+1).command = 'markTransferProcessed';
+    SeqControl(nsc+1).argument = nsc-1;
+    nsc = nsc+2;
+n = n+1;
+
+Event(n).info = 'Save b-mode image';
+Event(n).tx = 0; 
+Event(n).rcv = 0; 
+Event(n).recon = 0; 
+Event(n).process = 2; 
+Event(n).seqControl = nsc;
+    SeqControl(nsc).command = 'returnToMatlab';
+    nsc = nsc+1;
+n = n+1;
+% end of bmode saving
+
+Event(n).info = 'Save SA frames and return to imaging'; 
+Event(n).tx = 0;         
+Event(n).rcv = 0;        
+Event(n).recon = 0;      
+Event(n).process = 3;
+Event(n).seqControl = nsc;
+    SeqControl(nsc).command = 'returnToMatlab';
+    nsc = nsc+1;
+n = n+1;
+
+Event(n).info = 'Jump back to guidance b-mode'; % [edit] remove if B-mode needed within sequence
+Event(n).tx = 0;        % no TX
+Event(n).rcv = 0;       % no Rcv
+Event(n).recon = 0;     % no Recon
+Event(n).process = 0; 
+Event(n).seqControl = nsc;
+    SeqControl(nsc).command = 'jump';
+    SeqControl(nsc).argument = bmode_image;
+    nsc = nsc+1;
+n = n+1;
 %*********************** diverging SSA acquisition ************************
+
 
 
 %************************ GUI elements ************************************
@@ -1045,14 +1242,17 @@ UI(4).Callback = text2cell('%CB#4');
 UI(5).Control = {'UserC1','Style','VsPushButton','Tag','saveBmode','Label','Save B-mode'};
 UI(5).Callback = text2cell('%CB#8');
     
-UI(6).Control = {'UserB4','Style','VsPushButton','Tag','mvCenter','Label','Center Probe'};
+UI(6).Control = {'UserB4','Style','VsPushButton','Tag','mvCenter','Label','Re-position Probe'};
 UI(6).Callback = text2cell('%CB#9');
 
 UI(7).Control = {'UserB3','Style','VsPushButton','Tag','pwImage','Label','Phased/Plane'};
 UI(7).Callback = text2cell('%CB#10');
 
-UI(8).Control = {'UserC2','Style','VsPushButton','Tag','scanaSSA','Label','aSSA Scan'};
-UI(8).Callback = text2cell('%CB_aSSA');
+% UI(8).Control = {'UserC2','Style','VsPushButton','Tag','scanaSSA','Label','aSSA Scan'};
+% UI(8).Callback = text2cell('%CB_aSSA');
+
+UI(8).Control = {'UserC2','Style','VsPushButton','Tag','scanFocSSA','Label','fSSA Scan'};
+UI(8).Callback = text2cell('%CB_fSSA');
 
 %************************ output VSX **************************************
 scriptName = 'P4-2_planewaveSSA';
@@ -1069,6 +1269,11 @@ return
 startAngledSACallback(hObject,eventdata)
 return
 %CB_aSSA
+
+%CB_fSSA
+startFocSACallback(hObject,eventdata)
+return
+%CB_fSSA
 
 %CB#2
 testSweepCallback(hObject,eventdata)

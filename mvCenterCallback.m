@@ -87,8 +87,19 @@ if rs232Toggle == 1
         if strcmpi(fscanf(s_port),'Ok')
         else error('Failed to send command. Aborting operation.')
         end
-    else
-        disp('Position in center. Not moving.')
+    elseif tt_pos == mid_range
+        disp('Position in center. Move to sweep position.')
+        tt_dir = 'CW';
+        dest = sweep_range(1);
+        cmd = ['GoTo ' tt_dir ' ' num2str(dest)];
+        
+        disp(cmd)
+        disp('*** Press any key to send command ***')
+        pause()
+        fprintf(s_port,cmd);
+        if strcmpi(fscanf(s_port),'Ok')
+        else error('Failed to send command. Aborting operation.')
+        end
     end
 
     assignin('base','tt_pos',tt_pos);

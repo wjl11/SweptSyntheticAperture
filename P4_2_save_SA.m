@@ -6,6 +6,7 @@ Receive = evalin('base', 'Receive');
 ssaPRT = evalin('base','ssaPRT');
 steerAngles = evalin('base','steerAngles');
 IM_STATE = evalin('base','IM_STATE');
+ssaFocusMM = evalin('base','ssaFocusMM');
 
 SSA_TYPE = evalin('base','SSA_TYPE');
 
@@ -25,7 +26,10 @@ rfdata.samplingRateMHz = Trans.frequency*Receive(1).samplesPerWave;
 rfdata.frequencyMHz = Trans.frequency;
 rfdata.frameRatekHz = 1/(ssaPRT*1e-3);
 rfdata.type = SSA_TYPE;
+
 if strcmpi(SSA_TYPE,'steer_pw'); rfdata.steerAngles = steerAngles;
+end
+if strcmpi(SSA_TYPE,'focused'); rfdata.ssaFocusMM = ssaFocusMM;
 end
 
 if strcmpi(label,'db') || strcmpi(label,'')
