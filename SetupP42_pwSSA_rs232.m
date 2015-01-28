@@ -4,8 +4,8 @@ maxVoltage = 50;
 numEl = 64; % number of physical elements (64 elements in the P4-2, only half channels of vsx used)
 
 % SA parameters
-SAPRT = 50e3; % time between SA planewave acquisitions
-rowsPerFrameSA = 4096/2; 
+SAPRT = 160e3; % time between SA planewave acquisitions
+rowsPerFrameSA = 4096; 
 SAdata.rf = [];
 SAdata.th = [];
 SAdata.t = [];
@@ -13,11 +13,11 @@ SAdata.t = [];
 % B-mode parameters
 nr = 128; % no of ray lines in b-mode scan
 rowsPerFrameBmode = nr*4096; % rows of RF data stored **** changed from nr*4096 [edit]
-PRF = 6.67; % time between b-mode frames
-foc_mm = 60;
-endDepth_mm = 80;
+PRF = 10; % time between b-mode frames
+foc_mm = 100;
+endDepth_mm = 150;
 txfnum = 2;
-tPulse = 200; % time between phased array acqs [us]
+tPulse = 226; % time between phased array acqs [us]
 c = 1540;
 switch_buff = 10e3;
 
@@ -34,7 +34,7 @@ SERIAL.scan_range = [10.0 35.0];
 SERIAL.sweep_limits = [0.0 45.0];
 SERIAL.scan_velocity = 5.0;
 SERIAL.norm_velocity = 2.0;
-SERIAL.step = 1.0;
+SERIAL.step = 5.0;
 SERIAL.acc_fnc = 3;
 % 0 - impulse
 % 1 - flat
@@ -84,10 +84,10 @@ Media.function = 'movePoints';
 
 % specify system parameters
 Resource.Parameters.numTransmit = 128;
-Resource.Parameters.numRcvChannels = 128; % no of receive channels for 4 board VDAS unit
+Resource.Parameters.numRcvChannels = 256; % no of receive channels for 4 board VDAS unit
 % Resource.Parameters.connector = 1; % tdr connector to use for 4 board VDAS unit
 Resource.Parameters.speedOfSound = c;
-Resource.Parameters.simulateMode = 1;
+Resource.Parameters.simulateMode = 0;
 if Resource.Parameters.simulateMode ~= 0
     disp('Run in simulation mode.')
 else

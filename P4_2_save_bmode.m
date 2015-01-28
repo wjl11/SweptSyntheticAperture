@@ -9,8 +9,9 @@ end
 
 filename = ['Bmode_frame_' label '_' num2str(nframeBmode) '.mat'];
 disp(['Saving B-mode frame to ' filename]);
+trimRData = RData(:,[1:32 97:128],:);
 try
-    save(filename,'RData');
+    save(filename,'trimRData');
     SAVE_STATE(1) = 1;
 catch
     error('Failed to save b-mode RF.');
