@@ -1,9 +1,9 @@
 function P4_2_save_SA(RData)
-label = evalin('base','save_label');
+label = evalin('base','saveLabel');
 c = evalin('base','c');
 Trans = evalin('base', 'Trans');
 Receive = evalin('base', 'Receive');
-SAPRT = evalin('base','SAPRT');
+ssaPRT = evalin('base','ssaPRT');
 
 persistent nframeSA
 if isempty(nframeSA); nframeSA = 1;end
@@ -19,7 +19,7 @@ rfdata.elementSpacingMM = Trans.spacingMm;
 rfdata.XMTspacingMM = rfdata.elementSpacingMM;
 rfdata.samplingRateMHz = Trans.frequency*Receive(1).samplesPerWave;
 rfdata.frequencyMHz = Trans.frequency;
-rfdata.frameRatekHz = 1/(SAPRT*1e-3);
+rfdata.frameRatekHz = 1/(ssaPRT*1e-3);
 rfdata.type = 'pw';
 
 if strcmpi(label,'db') || strcmpi(label,'')

@@ -1,12 +1,12 @@
 function P4_2_save_bmode(RData)
-label = evalin('base','save_label');
+label = evalin('base','saveLabel');
 c = evalin('base','c');
 nr = evalin('base','nr');
-angles = evalin('base','angles');
+angles = evalin('base','bmodeAngles');
 origin = evalin('base','origin');
 Trans = evalin('base', 'Trans');
 Receive = evalin('base', 'Receive');
-txFocus = evalin('base', 'foc_mm');
+txFocus = evalin('base', 'bmodeFocusMM');
 
 persistent nframeBmode
 if isempty(nframeBmode); nframeBmode = 1; end

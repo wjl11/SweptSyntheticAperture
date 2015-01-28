@@ -51,15 +51,14 @@ if strcmpi(s_port.Status,'open')
 else error('Serial connection failed. Aborting operation.');
 end
 %********************** SERIAL SETUP END **********************************
-disp('button click')
-SA_switch = evalin('base','SA_switch'); 
+SSA_acq = evalin('base','SSA_acq'); 
 Control = evalin('base','Control');
 Control(1).Command = 'set&Run';
-Control(1).Parameters = {'Parameters',1,'startEvent',SA_switch};
-evalin('base','Resource.Parameters.startEvent = SA_switch;');
+Control(1).Parameters = {'Parameters',1,'startEvent',SSA_acq};
+evalin('base','Resource.Parameters.startEvent = SSA_acq;');
 assignin('base','Control',Control);
 
-disp(['Jump to event: ' num2str(SA_switch)])
+disp(['Jump to event: ' num2str(SSA_acq)])
 disp('Initiate SA imaging.')
 
 % move transducer to home and start turn table scanning movement
