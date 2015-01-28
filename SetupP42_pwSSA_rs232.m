@@ -4,11 +4,11 @@ maxVoltage = 50;
 numEl = 64; % number of physical elements (64 elements in the P4-2, only half channels of vsx used)
 
 % SA parameters
-SAPRT = 50e3; % time between SA planewave acquisitions
+SAPRT = 1e3; % time between SA planewave acquisitions
 rowsPerFrameSA = 4096; 
 SAdata.rf = [];
 SAdata.t = [];
-SAframes = 50;
+nframe_SA = 1000;
 
 % B-mode parameters
 nr = 128; % no of ray lines in b-mode scan
@@ -17,13 +17,12 @@ PRF = 10; % time between b-mode frames
 foc_mm = 100;
 endDepth_mm = 150;
 txfnum = 2;
-tPulse = 226+12; % time between phased array acqs [us]
-c = 1490;
+tPulse = 226; % time between phased array acqs [us]
+c = 1540;
 switch_buff = 10e3;
 
 % Frame buffers
 nframe_bmode = 2;
-nframe_SA = 1;
 
 % Save properties
 save_label = input('Save file label: ','s');
@@ -34,7 +33,7 @@ SERIAL.scan_range = [10.0 35.0];
 SERIAL.sweep_limits = [0.0 45.0];
 SERIAL.scan_velocity = 5.0;
 SERIAL.norm_velocity = 2.0;
-SERIAL.step = 1.0;
+SERIAL.step = 5.0;
 SERIAL.acc_fnc = 3;
 % 0 - impulse
 % 1 - flat
@@ -49,8 +48,6 @@ if SERIAL.sweep_range(1) < SERIAL.sweep_limits(1) || ...
         SERIAL.sweep_limits(1) > SERIAL.sweep_limits(2) 
     error('Error in TDR sweep bounds.')
 end
-
-SAVE_STATE = [0,0];
 
 % specify media points
 % Media.MP(1,:) = [0,0,100,1.0]; % specify point in media [x,y,z,reflectivity]
@@ -305,11 +302,7 @@ SeqControl(5).argument = 1;
 SeqControl(6).command = 'timeToNextAcq';
 SeqControl(6).argument = SAPRT;
 % SeqControl(6).argument = round(1/SAPRF*1e6 - 128*tPulse); % ****  SAPRF not valid here [edit] 
-
-%
-SeqControl(7).command = 'triggerOut';
-
-nsc = 8;
+nsc = 7;
 
 % ****************** guidance b mode imaging routine **********************
 n = 1;
@@ -371,8 +364,16 @@ Event(n).process = 0;
 Event(n).seqControl = 3; % jump back to event 2 to continue b-mode imaging 
 n = n+1;
 
-%*************************** save b-mode frame ****************************
+%*************************** b-mode acquisition ***************************
 bmode_end = n;
+Event(n).info = 'Switch to b-mode acquire';
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 5; % switch to b-mode profile
+n = n+1;
+
 Event(n).info = 'Buffer b-mode acquisition';
 Event(n).tx = 0;         
 Event(n).rcv = 0;        
@@ -414,6 +415,15 @@ nsc = nsc+2;
 n = n+1;
 
 %*********************** plane wave SA acquisition ************************
+
+Event(n).info = 'Switch to SA acquire';
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = 4; % switch to SA profile
+n = n+1;
+
 SA_start = n;
 for i = 1:Resource.RcvBuffer(2).numFrames
     Event(n).info = 'Send trigger out.';
@@ -421,7 +431,9 @@ for i = 1:Resource.RcvBuffer(2).numFrames
     Event(n).rcv = 0; 
     Event(n).recon = 0; 
     Event(n).process = 0; 
-    Event(n).seqControl = 7;
+    Event(n).seqControl = [nsc]; 
+        SeqControl(nsc).command = 'triggerOut'; % [edit] change to correct seqcontrol
+        nsc = nsc+1;
     n = n+1;
     
     Event(n).info = 'Acquire SA RF Data.';
@@ -435,11 +447,11 @@ for i = 1:Resource.RcvBuffer(2).numFrames
     n = n+1;
 end
     
-Event(n).info = 'Call external Processing function';
+Event(n).info = 'Wait and sync.';
 Event(n).tx = 0;
 Event(n).rcv = 0;
 Event(n).recon = 0;
-Event(n).process = 4;
+Event(n).process = 0;
 Event(n).seqControl = [nsc nsc+1 nsc+2];
     SeqControl(nsc).command = 'waitForTransferComplete';
     SeqControl(nsc).argument = nsc-1;

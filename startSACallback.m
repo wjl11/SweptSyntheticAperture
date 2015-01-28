@@ -7,7 +7,7 @@ norm_velocity = evalin('base','SERIAL.norm_velocity');
 step = evalin('base','SERIAL.step');
 acc_fnc = evalin('base','SERIAL.acc_fnc');
 
-% %******************** SERIAL SETUP START **********************************
+%******************** SERIAL SETUP START **********************************
 try s_port = evalin('base','s_port');
 catch
     devices = instrhwinfo('serial');

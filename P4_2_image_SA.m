@@ -12,7 +12,8 @@ SAframes = evalin('base','SAframes');
 SArows = evalin('base','rowsPerFrameSA');
 SAcols = 64;
 SAdata = evalin('base','SAdata');
-tic
+
+disp('Process SA frames')
 if isempty(frameNum)
     frameNum = 1;
 end
@@ -27,24 +28,22 @@ else
     SAdata.t(:,frameNum) = clock;
 end
 
-% disp(['SA frame ' num2str(frameNum) '/' num2str(SAframes)])
 if frameNum == SAframes
     % save all frames
-%     disp(['Saving ' num2str(SAframes) ' SA frames.'])
-%     save_start = evalin('base','save_start'); 
-%     Control(1).Parameters = {'Parameters',1,'startEvent',save_start};
-%     evalin('base','Resource.Parameters.startEvent = save_start;');
-%     assignin('base','Control',Control);
+    disp(['Saving ' num2str(SAframes) ' SA frames.'])
+    save_start = evalin('base','save_start'); 
+    Control(1).Parameters = {'Parameters',1,'startEvent',save_start};
+    evalin('base','Resource.Parameters.startEvent = save_start;');
+    assignin('base','Control',Control);
     frameNum = 1;
 else 
     % continue collecting frames
     SA_start = evalin('base','SA_start');
-    Control = evalin('base','Control');
-    Control(1).Command = 'set&Run';
     Control(1).Parameters = {'Parameters',1,'startEvent',SA_start};
     evalin('base','Resource.Parameters.startEvent = SA_start;');
     assignin('base','Control',Control);
+%     disp('Range not reached. Continue SA imaging.')
     frameNum = frameNum+1;
 end
+
 assignin('base','SAdata',SAdata);
-toc
