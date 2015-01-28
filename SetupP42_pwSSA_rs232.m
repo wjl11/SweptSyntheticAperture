@@ -5,35 +5,32 @@ numEl = 64; % number of physical elements (64 elements in the P4-2, only half ch
 
 % SA parameters
 SAPRT = 1e3; % time between SA planewave acquisitions
+disp(['Plane wave SA frame rate: ' num2str(1/(SAPRT*1e-3)) ' kHz']);
 rowsPerFrameSA = 4096; 
-SAdata.rf = [];
-SAdata.t = [];
-nframe_SA = 1000;
+SAdepth = 150; %%%% edit to maximize frame rate
+rs232wait = 0; % wait time for rs232 sweep command [ms] (max at 104.8 ms)
 
 % B-mode parameters
 nr = 128; % no of ray lines in b-mode scan
-rowsPerFrameBmode = nr*4096; % rows of RF data stored **** changed from nr*4096 [edit]
-PRF = 10; % time between b-mode frames
+rowsPerFrameBmode = nr*4096; % rows of RF data stored
+PRF = 25; % time between b-mode frames
 foc_mm = 100;
 endDepth_mm = 150;
 txfnum = 2;
-tPulse = 226; % time between phased array acqs [us]
+tPulse = 250; % time between phased array acqs [us]
 c = 1540;
-switch_buff = 10e3;
+
+disp(['Fundamental frame rate: ' num2str(1/(SAdepth*2/c)) ' kHz']);
 
 % Frame buffers
 nframe_bmode = 2;
 
-% Save properties
-save_label = input('Save file label: ','s');
-
 % Turn table and serial parameters
-SERIAL.sweep_range = [5.0 40.0];
-SERIAL.scan_range = [10.0 35.0];
-SERIAL.sweep_limits = [0.0 45.0];
+SERIAL.sweep_range = [0.0 45.0];
+SERIAL.sweep_limits = [0.0 45.0]; % DO NOT ALTER
 SERIAL.scan_velocity = 5.0;
-SERIAL.norm_velocity = 2.0;
-SERIAL.step = 5.0;
+SERIAL.norm_velocity = 3.0;
+SERIAL.step = 1.0;
 SERIAL.acc_fnc = 3;
 % 0 - impulse
 % 1 - flat
@@ -41,13 +38,17 @@ SERIAL.acc_fnc = 3;
 % 3 - sin 
 if SERIAL.sweep_range(1) < SERIAL.sweep_limits(1) || ...
         SERIAL.sweep_range(2) > SERIAL.sweep_limits(2) || ...
-        SERIAL.scan_range(1) < SERIAL.sweep_range(1) ||...
-        SERIAL.scan_range(2) > SERIAL.sweep_range(2) ||...
-        SERIAL.scan_range(1) > SERIAL.scan_range(2) ||...
         SERIAL.sweep_range(1) > SERIAL.sweep_range(2) ||...
         SERIAL.sweep_limits(1) > SERIAL.sweep_limits(2) 
     error('Error in TDR sweep bounds.')
 end
+
+%calculation of frames per sweep
+nframe_SA = round(((SERIAL.sweep_range(2)-SERIAL.sweep_range(1))/360.0)/(SERIAL.scan_velocity/60)/(SAPRT*1e-6))+500;
+disp(['SA frames per acquisition: ' num2str(nframe_SA)])
+
+% Save properties
+save_label = input('Save file label: ','s');
 
 % specify media points
 % Media.MP(1,:) = [0,0,100,1.0]; % specify point in media [x,y,z,reflectivity]
@@ -86,9 +87,9 @@ Resource.Parameters.numRcvChannels = 256; % no of receive channels for 4 board V
 Resource.Parameters.speedOfSound = c;
 Resource.Parameters.simulateMode = 0;
 if Resource.Parameters.simulateMode ~= 0
-    disp('Run in simulation mode.')
+    disp('Simulation mode ON')
 else
-    disp('Attach P4-2 transducer.')
+    warning('Simulation mode OFF')
 end
 
 % computeTrans function used to define the transducer struct
@@ -96,6 +97,7 @@ freqMHz = 2.50;
 Trans.name = 'P4-2';
 Trans.frequency = freqMHz; % not needed if using default center freq -
 % assume center frequency
+Trans.units = 'mm';
 Trans = computeTrans(Trans);
 Trans.maxHighVoltage = maxVoltage;
 
@@ -172,7 +174,6 @@ for n = 1:nr
     TX(n).Steer = [angles(n),0.0];
     TX(n).Delay = computeTXDelays(TX(n));
 end
-clear origin angles
 
 TX(nr+1).Delay = computeTXDelays(TX(nr+1));
 
@@ -302,7 +303,11 @@ SeqControl(5).argument = 1;
 SeqControl(6).command = 'timeToNextAcq';
 SeqControl(6).argument = SAPRT;
 % SeqControl(6).argument = round(1/SAPRF*1e6 - 128*tPulse); % ****  SAPRF not valid here [edit] 
-nsc = 7;
+
+SeqControl(7).command = 'noop';
+SeqControl(7).argument = floor(rs232wait/(200e-6));
+
+nsc = 8;
 
 % ****************** guidance b mode imaging routine **********************
 n = 1;
@@ -365,7 +370,7 @@ Event(n).seqControl = 3; % jump back to event 2 to continue b-mode imaging
 n = n+1;
 
 %*************************** b-mode acquisition ***************************
-bmode_end = n;
+bmode_acq = n;
 Event(n).info = 'Switch to b-mode acquire';
 Event(n).tx = 0;         
 Event(n).rcv = 0;       
@@ -373,16 +378,6 @@ Event(n).recon = 0;
 Event(n).process = 0;
 Event(n).seqControl = 5; % switch to b-mode profile
 n = n+1;
-
-Event(n).info = 'Buffer b-mode acquisition';
-Event(n).tx = 0;         
-Event(n).rcv = 0;        
-Event(n).recon = 0;      
-Event(n).process = 0;    
-Event(n).seqControl = [nsc];
-SeqControl(nsc).command = 'noop';
-SeqControl(nsc).argument = switch_buff;
-nsc = nsc+1;
 
 for j = 1:nr                 
     Event(n).info = 'Acquire ray line';
@@ -414,8 +409,30 @@ SeqControl(nsc+1).argument = nsc-1;
 nsc = nsc+2;
 n = n+1;
 
+Event(n).info = 'Save b-mode image';
+Event(n).tx = 0; 
+Event(n).rcv = 0; 
+Event(n).recon = 0; 
+Event(n).process = 2; 
+Event(n).seqControl = nsc;
+SeqControl(nsc).command = 'returnToMatlab';
+nsc = nsc+1;
+n = n+1;
+
+Event(n).info = 'Jump back to guidance b-mode'; % [edit] remove if B-mode needed within sequence
+Event(n).tx = 0;        % no TX
+Event(n).rcv = 0;       % no Rcv
+Event(n).recon = 0;     % no Recon
+Event(n).process = 0; 
+Event(n).seqControl = nsc;
+    SeqControl(nsc).command = 'jump';
+    SeqControl(nsc).argument = bmode_start;
+    nsc = nsc+1;
+n = n+1;
+
 %*********************** plane wave SA acquisition ************************
 
+SA_switch = n;
 Event(n).info = 'Switch to SA acquire';
 Event(n).tx = 0;         
 Event(n).rcv = 0;       
@@ -423,6 +440,15 @@ Event(n).recon = 0;
 Event(n).process = 0;
 Event(n).seqControl = 4; % switch to SA profile
 n = n+1;
+
+% Event(n).info = 'Wait for turn table command';
+% Event(n).tx = 0;         
+% Event(n).rcv = 0;       
+% Event(n).recon = 0;      
+% Event(n).process = 0;
+% Event(n).seqControl = 7; 
+% n = n+1;
+
 
 SA_start = n;
 for i = 1:Resource.RcvBuffer(2).numFrames
@@ -459,8 +485,6 @@ Event(n).seqControl = [nsc nsc+1 nsc+2];
     nsc = nsc+2;
 n = n+1;
 
-% Save SA and b-mode frames together after sweep finished
-
 save_start = n;
 Event(n).info = 'Save SA frames'; 
 Event(n).tx = 0;         
@@ -472,17 +496,7 @@ SeqControl(nsc).command = 'returnToMatlab';
 nsc = nsc+1;
 n = n+1;
 
-Event(n).info = 'Save b-mode image';
-Event(n).tx = 0; 
-Event(n).rcv = 0; 
-Event(n).recon = 0; 
-Event(n).process = 2; % process
-Event(n).seqControl = nsc;
-SeqControl(nsc).command = 'returnToMatlab';
-nsc = nsc+1;
-n = n+1;
-
-Event(n).info = 'Jump back to b-mode frame';
+Event(n).info = 'Jump back to guidance b-mode';
 Event(n).tx = 0;        % no TX
 Event(n).rcv = 0;       % no Rcv
 Event(n).recon = 0;     % no Recon
@@ -501,20 +515,26 @@ UI(1).Callback = text2cell('%CB#1');
 UI(2).Control = {'UserC2','Style','VsPushButton','Tag','testSweep','Label','Test Sweep'};
 UI(2).Callback = text2cell('%CB#2');
 
-UI(3).Control = {'UserB1','Style','VsPushButton','Tag','closePort','Label','Clear RS232'};
+UI(3).Control = {'UserB2','Style','VsPushButton','Tag','closePort','Label','Clear RS232'};
 UI(3).Callback = text2cell('%CB#3');
 
-UI(4).Control = {'UserC1','Style','VsPushButton','Tag','abortSweep','Label','Abort Sweep'};
+UI(4).Control = {'UserB1','Style','VsPushButton','Tag','abortSweep','Label','Abort Sweep'};
 UI(4).Callback = text2cell('%CB#4');
 
-UI(5).Control = {'UserB4','Style','VsPushButton','Tag','stepCW','Label','Step CW'};
+UI(5).Control = {'UserB5','Style','VsPushButton','Tag','stepCW','Label','Step CW'};
 UI(5).Callback = text2cell('%CB#5');
 
-UI(6).Control = {'UserB3','Style','VsPushButton','Tag','stepCCW','Label','Step CCW'};
+UI(6).Control = {'UserB6','Style','VsPushButton','Tag','stepCCW','Label','Step CCW'};
 UI(6).Callback = text2cell('%CB#6');
 
-UI(7).Control = {'UserB2','Style','VsPushButton','Tag','setOrigin','Label','Set Origin'};
+UI(7).Control = {'UserB7','Style','VsPushButton','Tag','setOrigin','Label','Set Origin'};
 UI(7).Callback = text2cell('%CB#7');
+
+UI(8).Control = {'UserC1','Style','VsPushButton','Tag','saveBmode','Label','Save B-mode'};
+UI(8).Callback = text2cell('%CB#8');
+    
+UI(9).Control = {'UserB4','Style','VsPushButton','Tag','mvCenter','Label','Move Center'};
+UI(9).Callback = text2cell('%CB#9');
 
 %************************ output VSX **************************************
 scriptName = 'P4-2_planewaveSSA';
@@ -556,3 +576,13 @@ return
 setOriginCallback(hObject,eventdata)
 return
 %CB#7
+
+%CB#8
+saveBmodeCallback(hObject,eventdata)
+return
+%CB#8
+
+%CB#9
+mvCenterCallback(hObject,eventdata)
+return
+%CB#9

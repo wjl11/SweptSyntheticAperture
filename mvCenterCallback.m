@@ -1,4 +1,4 @@
-function startSACallback(hObject, eventdata)
+function mvCenterCallback(hObject, eventdata)
 sweep_range = evalin('base','SERIAL.sweep_range');
 sweep_limits = evalin('base','SERIAL.sweep_limits');
 scan_velocity = evalin('base','SERIAL.scan_velocity');
@@ -51,83 +51,44 @@ if strcmpi(s_port.Status,'open')
 else error('Serial connection failed. Aborting operation.');
 end
 %********************** SERIAL SETUP END **********************************
-disp('button click')
-SA_switch = evalin('base','SA_switch'); 
-Control = evalin('base','Control');
-Control(1).Command = 'set&Run';
-Control(1).Parameters = {'Parameters',1,'startEvent',SA_switch};
-evalin('base','Resource.Parameters.startEvent = SA_switch;');
-assignin('base','Control',Control);
-
-disp(['Jump to event: ' num2str(SA_switch)])
-disp('Initiate SA imaging.')
-
-% move transducer to home and start turn table scanning movement
+mid_range = round((sweep_range(2)-sweep_range(1))/2)+sweep_range(1);
 
 % set positioning velocity
 fprintf(s_port,['Set Velocity ' num2str(norm_velocity)]);
 if strcmpi(fscanf(s_port),'Ok')
 else error('Failed to configure velocity. Aborting operation.')
 end
-pause(0.5)
+
 % get current position of tdr
 fprintf(s_port, 'Get Position');
 tt_pos = str2double(fscanf(s_port));
 disp(['Current position: ' num2str(tt_pos) ' deg'])
 
-if tt_pos == sweep_range(1)
-    tt_dir = 'CCW';
-    dest = sweep_range(2);
-elseif tt_pos == sweep_range(2)
+if tt_pos > mid_range
     tt_dir = 'CW';
-    dest = sweep_range(1);
-else
-    disp('Current position invalid. Moving TDR to home.');
-    if tt_pos > sweep_range(1)
-        tt_dir = 'CW';
-    elseif tt_pos < sweep_range(1)
-        tt_dir = 'CCW';
-    else
-        tt_dir = 'CCW';
-    end
-    
-    fprintf(s_port,['Set Velocity ' num2str(norm_velocity)]);
-    if strcmpi(fscanf(s_port),'Ok')
-    else error('Failed to configure velocity. Aborting operation.')
-    end
-    
-    cmd = ['GoTo ' tt_dir ' ' num2str(sweep_range(1))];
+    dest = mid_range;
+    cmd = ['GoTo ' tt_dir ' ' num2str(dest)];
 %     disp(cmd)
 %     disp('*** Press any key to send command ***')
 %     pause()
     fprintf(s_port,cmd);
     if strcmpi(fscanf(s_port),'Ok')
-    else error('Failed to return home. Aborting operation.')
+    else error('Failed to send command. Aborting operation.')
     end
-
-    while tt_pos ~= sweep_range(1)
-        fprintf(s_port,'Get Position');
-        tt_pos = str2double(fscanf(s_port));
-        disp(['TDR position: ' num2str(tt_pos) ' deg'])
-    end
+elseif tt_pos < mid_range
     tt_dir = 'CCW';
-    dest = sweep_range(2);
+    dest = mid_range;
+    cmd = ['GoTo ' tt_dir ' ' num2str(dest)];
+%     disp(cmd)
+%     disp('*** Press any key to send command ***')
+%     pause()
+    fprintf(s_port,cmd);
+    if strcmpi(fscanf(s_port),'Ok')
+    else error('Failed to send command. Aborting operation.')
+    end
+else
+    disp('Position in center. Not moving.')
 end
-
- % set sweep velocity
-fprintf(s_port,['Set Velocity ' num2str(scan_velocity)]);
-if strcmpi(fscanf(s_port),'Ok')
-else error('Failed to configure velocity. Aborting operation.')
-end
-
-cmd = ['GoTo ' tt_dir ' ' num2str(dest)];
-% disp(cmd)
-% disp('*** Press any key to send command ***')
-% pause()
-fprintf(s_port,cmd);
-if strcmpi(fscanf(s_port),'Ok')
-else error('Failed to send command. Aborting operation.')
-end
-
+        
 assignin('base','tt_pos',tt_pos);
 assignin('base','tt_dir',tt_dir);

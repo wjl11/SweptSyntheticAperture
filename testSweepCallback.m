@@ -1,7 +1,6 @@
 function testSweepCallback(hObject, eventdata)
 
 sweep_range = evalin('base','SERIAL.sweep_range');
-scan_range = evalin('base','SERIAL.scan_range');
 sweep_limits = evalin('base','SERIAL.sweep_limits');
 scan_velocity = evalin('base','SERIAL.scan_velocity');
 norm_velocity = evalin('base','SERIAL.norm_velocity');
@@ -54,10 +53,18 @@ else error('Serial connection failed. Aborting operation.');
 end
 %********************** SERIAL SETUP END **********************************
 
+% set positioning velocity
+fprintf(s_port,['Set Velocity ' num2str(norm_velocity)]);
+if strcmpi(fscanf(s_port),'Ok')
+else error('Failed to configure velocity. Aborting operation.')
+end
+pause(0.5)
+
 % get current position of tdr
 fprintf(s_port, 'Get Position');
 tt_pos = str2double(fscanf(s_port));
 disp(['Current position: ' num2str(tt_pos) ' deg'])
+
 if tt_pos == sweep_range(1)
     tt_dir = 'CCW';
     dest = sweep_range(2);
@@ -65,7 +72,7 @@ elseif tt_pos == sweep_range(2)
     tt_dir = 'CW';
     dest = sweep_range(1);
 else
-    warning('Current position invalid. Move TDR to home.');
+    warning('Current position invalid. Moving TDR to home.');
     % move tdr to home position
     if tt_pos > sweep_range(1)
         tt_dir = 'CW';
@@ -81,7 +88,7 @@ else
     end
 
     cmd = ['GoTo ' tt_dir ' ' num2str(sweep_range(1))];
-    disp(cmd)
+%     disp(cmd)
 %     disp('*** Press any key to send command ***')
 %     pause()
     fprintf(s_port,cmd);
@@ -107,10 +114,13 @@ end
 
 % move tdr to opposite side
 cmd = ['GoTo ' tt_dir ' ' num2str(dest)];
-disp(cmd)
+% disp(cmd)
 % disp('*** Press any key to send command ***')
 % pause()
 fprintf(s_port,cmd);
 if strcmpi(fscanf(s_port),'Ok')
-else error('Failed to return home. Aborting operation.')
+else error('Failed to send command. Aborting operation.')
 end
+
+assignin('base','tt_pos',tt_pos);
+assignin('base','tt_dir',tt_dir);

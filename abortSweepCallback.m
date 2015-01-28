@@ -1,13 +1,5 @@
 function abortSweepCallback(hObject, eventdata)
 
-sweep_range = evalin('base','SERIAL.sweep_range');
-scan_range = evalin('base','SERIAL.scan_range');
-sweep_limits = evalin('base','SERIAL.sweep_limits');
-scan_velocity = evalin('base','SERIAL.scan_velocity');
-norm_velocity = evalin('base','SERIAL.norm_velocity');
-step = evalin('base','SERIAL.step');
-acc_fnc = evalin('base','SERIAL.acc_fnc');
-
 %******************** SERIAL SETUP START **********************************
 try s_port = evalin('base','s_port');
 catch

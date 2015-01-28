@@ -1,7 +1,6 @@
 function setOriginCallback(hObject, eventdata)
 
 sweep_range = evalin('base','SERIAL.sweep_range');
-scan_range = evalin('base','SERIAL.scan_range');
 sweep_limits = evalin('base','SERIAL.sweep_limits');
 scan_velocity = evalin('base','SERIAL.scan_velocity');
 norm_velocity = evalin('base','SERIAL.norm_velocity');
