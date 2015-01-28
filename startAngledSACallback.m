@@ -1,4 +1,4 @@
-function startSACallback(hObject, eventdata)
+function startAngledSACallback(hObject, eventdata)
 sweep_range = evalin('base','SERIAL.sweep_range');
 sweep_limits = evalin('base','SERIAL.sweep_limits');
 scan_velocity = evalin('base','SERIAL.scan_velocity');
@@ -47,7 +47,6 @@ if rs232Toggle == 1
         if strcmpi(fscanf(s_port),'Ok')
         else error('Failed to configure acceleration function. Aborting operation.')
         end
-
     end
 
     if strcmpi(s_port.Status,'open')
@@ -56,15 +55,15 @@ if rs232Toggle == 1
 end
 %********************** SERIAL SETUP END **********************************
 
-SSA_acq = evalin('base','SSA_acq'); 
+steerSSA_acq = evalin('base','steerSSA_acq'); 
 Control = evalin('base','Control');
 Control(1).Command = 'set&Run';
-Control(1).Parameters = {'Parameters',1,'startEvent',SSA_acq};
-evalin('base','Resource.Parameters.startEvent = SSA_acq;');
+Control(1).Parameters = {'Parameters',1,'startEvent',steerSSA_acq};
+evalin('base','Resource.Parameters.startEvent = steerSSA_acq;');
 assignin('base','Control',Control);
 
-disp(['Jump to event: ' num2str(SSA_acq)])
-disp('Initiate SA imaging.')
+disp(['Jump to event: ' num2str(steerSSA_acq)])
+disp('Initiate steered SA imaging.')
 
-SSA_TYPE = 'pw';
+SSA_TYPE = 'steer_pw';
 assignin('base','SSA_TYPE',SSA_TYPE);
