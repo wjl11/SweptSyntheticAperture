@@ -1,18 +1,18 @@
-function P4_2_save_bmode(RData)
+function saveBmode(RData)
 label = evalin('base','saveLabel');
 c = evalin('base','c');
-nr = evalin('base','nr');
+nr = evalin('base','PHASED_B.nRay');
 angles = evalin('base','bmodeAngles');
 origin = evalin('base','origin');
 Trans = evalin('base', 'Trans');
 Receive = evalin('base', 'Receive');
-txFocus = evalin('base', 'bmodeFocusMM');
+txFocus = evalin('base', 'PHASED_B.focusMM');
 
 persistent nframeBmode
 if isempty(nframeBmode); nframeBmode = 1; end
 dir = './data/';
 if exist(dir,'file')~=7; mkdir(dir); end
-name = ['bmode_manual_' label '_' datestr(now,'yyyymmdd_HHMMSS') '_' num2str(nframeBmode)];
+name = ['bmode_' label '_' datestr(now,'yyyymmdd_HHMMSS') '_' num2str(nframeBmode)];
 path = [dir name];
 
 numRcvSamples = Receive(1).endSample-Receive(1).startSample+1;
@@ -44,8 +44,8 @@ if strcmpi(label,'db') || strcmpi(label,'')
 else
     disp(['Saving B-mode frame to ' path]);
     save([path '.mat'],'rf','rfdata');
-    figure(2)
-    print('-dpng',[path '_verasonics.png'])
+%     figure(2)
+%     print('-dpng',[path '_verasonics.png'])
     disp(['B-mode data saved to ' path]);
 end
 

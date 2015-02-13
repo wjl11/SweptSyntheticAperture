@@ -1,13 +1,7 @@
-function stepCCWCallback(hObject, eventdata)
+function table_initRS232
 
-sweep_range = evalin('base','SERIAL.sweep_range');
-sweep_limits = evalin('base','SERIAL.sweep_limits');
-scan_velocity = evalin('base','SERIAL.scan_velocity');
-norm_velocity = evalin('base','SERIAL.norm_velocity');
-step = evalin('base','SERIAL.step');
 acc_fnc = evalin('base','SERIAL.acc_fnc');
 
-%******************** SERIAL SETUP START **********************************
 try s_port = evalin('base','s_port');
 catch
     devices = instrhwinfo('serial');
@@ -50,28 +44,4 @@ end
 
 if strcmpi(s_port.Status,'open')
 else error('Serial connection failed. Aborting operation.');
-end
-%********************** SERIAL SETUP END **********************************
-
-fprintf(s_port,['Set Velocity ' num2str(norm_velocity)]);
-if strcmpi(fscanf(s_port),'Ok')
-else error('Failed to configure velocity. Aborting operation.')
-end
-
-fprintf(s_port,['Set StepSize ' num2str(step)])
-if strcmpi(fscanf(s_port),'Ok')
-    disp(['Step ' num2str(step) ' deg'])
-else error('Failed to configure step size. Aborting operation.')
-end
-
-fprintf(s_port, 'Step CCW')
-if strcmpi(fscanf(s_port),'Ok')
-else error('Step command not sent. Aborting operation.')
-end
-
-fprintf(s_port, 'Get Position');
-tt_pos = str2double(fscanf(s_port));
-disp(['Current position: ' num2str(tt_pos) ' deg'])
-if tt_pos >= sweep_limits(2) || tt_pos <= sweep_limits(1)
-    warning('Out of bounds.')
 end

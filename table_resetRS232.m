@@ -1,4 +1,4 @@
-function closeSerialCallback(hObject, eventdata)
+function table_resetRS232(hObject, eventdata)
 
 try s_port = evalin('base','s_port');
     evalin('base','fclose(s_port)');

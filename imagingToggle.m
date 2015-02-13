@@ -1,4 +1,5 @@
-function imageToggleCallback(hObject, eventdata)
+function imagingToggle(hObject, eventdata)
+
 IM_STATE = evalin('base','IM_STATE');
 pw_image = evalin('base','pw_image');
 bmode_image = evalin('base','bmode_image');

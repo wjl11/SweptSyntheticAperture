@@ -1,12 +1,9 @@
-function sweep_probe()
+function sweepTable()
 
 sweep_range = evalin('base','SERIAL.sweep_range');
-sweep_limits = evalin('base','SERIAL.sweep_limits');
 scan_velocity = evalin('base','SERIAL.scan_velocity');
 norm_velocity = evalin('base','SERIAL.norm_velocity');
-step = evalin('base','SERIAL.step');
-acc_fnc = evalin('base','SERIAL.acc_fnc');
-rs232Toggle = evalin('base','rs232Toggle');
+rs232Toggle = evalin('base','SETUP.rs232Toggle');
 
 if rs232Toggle == 1
     s_port = evalin('base','s_port');
@@ -17,6 +14,7 @@ if rs232Toggle == 1
     if strcmpi(fscanf(s_port),'Ok')
     else error('Failed to configure velocity. Aborting operation.')
     end
+    
     % get current position of tdr
     fprintf(s_port, 'Get Position');
     tt_pos = str2double(fscanf(s_port));
@@ -29,7 +27,8 @@ if rs232Toggle == 1
         tt_dir = 'CW';
         dest = sweep_range(1);
     else
-        disp('Current position invalid. Moving TDR to home.');
+        warning('Current position invalid. Moving TDR to home.');
+        % move tdr to home position
         if tt_pos > sweep_range(1)
             tt_dir = 'CW';
         elseif tt_pos < sweep_range(1)
