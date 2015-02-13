@@ -15,8 +15,8 @@
 
 % TO-DOs
 % -Implement full SA acquisition
-% -Test initRS232 callbacks
-% -Optimize save routines 
+% -Error in save bmode full 
+% -Optimize save routines (-v7-3 saving should be inplemented)
 
 vsx_path = '/home/wjl11/Matlab Simulator/';
 addpath(genpath(vsx_path));
@@ -24,11 +24,11 @@ addpath(genpath(vsx_path));
 %%%%%%%%%%%%%%%%%%%%%%
 % Imaging Case Setup %
 %%%%%%%%%%%%%%%%%%%%%%
-SETUP.debugFlag = 0;        % 1 [show SSA rf], 0 [no SSA display]
-SETUP.simToggle = 1;        % 1 [simulation], 0 [probe connected]
-SETUP.rs232Toggle = 0;      % 1 [table com on], 0 [table com off]
-SETUP.scanType = 'manual';  % 'manual' [manual scanning]
-                            % 'turntable' [turn table scanning]     
+SETUP.debugFlag = 0;            % 1 [show SSA rf], 0 [no SSA display]
+SETUP.simToggle = 1;            % 1 [simulation], 0 [probe connected]
+SETUP.rs232Toggle = 0;          % 1 [table com on], 0 [table com off]
+SETUP.scanType = input('Scan type [manual/turntable]: ','s');   % 'manual' [manual scanning]
+                                % 'turntable' [turn table scanning]     
                             
 %%%%%%%%%%%%%%%%%%%%%%
 % General Parameters %
@@ -112,8 +112,8 @@ end
 
 % CONSOLE OUTPUTS
 disp(['Plane wave SA frame rate: ' num2str(1/(SSA.PRT*1e-3)) ' kHz']);
-disp(['Fundamental frame rate: ' num2str(1/(SSA.endDepthMM*2/c)) ' kHz']);
 disp(['SSA frames per acquisition: ' num2str(SSA.nFrames)])
+% disp(['Fundamental frame rate: ' num2str(1/(SSA.endDepthMM*2/c)) ' kHz']);
 
 % DATA LABEL
 saveLabel = input('Data file unique identifier: ','s');
@@ -320,11 +320,11 @@ end
 
 % FOCUSED SSA TX 
 % - single tx struct defined
-fssaTxStart = tx_i+1;
+fssaTxStart = tx_i;
 tx_i = tx_i+1;
 ssa_foc = round(SSA.focusMM/1000/(c/(Trans.frequency*1e6)));
 TX(tx_i).focus = ssa_foc;
-TX(tx_i).Delay = computeTXDelays(Tx(tx_i));
+TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 
 % FULL SA TX 
 % IN PROGRESS...
@@ -929,17 +929,17 @@ switch SETUP.scanType
         UI(ui).Callback = text2cell('%CB_pwSSA');
         ui = ui+1;
 
-        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','steerSSA','Label','steered SSA'};
+        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','steerSSA','Label','steer SSA'};
         UI(ui).Callback = text2cell('%CB_steerSSA');
         ui = ui+1;
         
     case 'turntable'
         UI(ui).Control = {'UserC3','Style','VsPushButton','Tag','pwSSA','Label','pw SSA'};
-        UI(ui).Callback = text2cell('%CB_pwSSA_table');
+        UI(ui).Callback = text2cell('%CBtable_pwSSA');
         ui = ui+1;
 
-        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','steerSSA','Label','steered SSA'};
-        UI(ui).Callback = text2cell('%CB_steerSSA_table');
+        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','steerSSA','Label','steer SSA'};
+        UI(ui).Callback = text2cell('%CBtable_steerSSA');
         ui = ui+1;
 
         UI(ui).Control = {'UserB5','Style','VsPushButton','Tag','testSweep','Label','Test Sweep'};
@@ -956,14 +956,12 @@ switch SETUP.scanType
 end
 
 %************************ output VSX **************************************
-scriptName = 'P4-2_planewaveSSA';
+scriptName = sprintf('P4-2_SSA_%s',SETUP.scanType); 
+% 'P4-2_planewaveSSA';
 disp(['filename =''' scriptName ''';VSX'])
 save(scriptName);
 return 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% GENERAL PURPOSE CALLBACKS %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %CB_pwSSA
 init_pwSSA(hObject,eventdata)
@@ -985,21 +983,17 @@ imagingToggle(hObject,eventdata)
 return
 %CB_imagingToggle
 
-%%%%%%%%%%%%%%%%%%%%%%%
-% TURNTABLE CALLBACKS %
-%%%%%%%%%%%%%%%%%%%%%%%
-
-%CB_steerSSA_table
+%CBtable_steerSSA
 table_initRS232
 init_steerSSA(hObject,eventdata)
 return
-%CB_steerSSA_table
+%CBtable_steerSSA
 
-%CB_pwSSA_table
+%CBtable_pwSSA
 table_initRS232
 init_pwSSA(hObject,eventdata)
 return
-%CB_pwSSA_table
+%CBtable_pwSSA
 
 %CB_testSweep
 table_initRS232

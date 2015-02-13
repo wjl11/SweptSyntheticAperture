@@ -1,6 +1,6 @@
 function table_initRS232
 
-acc_fnc = evalin('base','SERIAL.acc_fnc');
+acc_fnc = evalin('base','TABLE.acc_fnc');
 
 try s_port = evalin('base','s_port');
 catch

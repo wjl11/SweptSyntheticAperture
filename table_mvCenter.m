@@ -1,8 +1,8 @@
 function table_mvCenter(hObject, eventdata)
 
-sweep_range = evalin('base','SERIAL.sweep_range');
-norm_velocity = evalin('base','SERIAL.norm_velocity');
-rs232Toggle = evalin('base','SETUP.rs232Toggle');
+sweep_range = evalin('base','TABLE.sweep_range');
+norm_velocity = evalin('base','TABLE.norm_velocity');
+rs232Toggle = evalin('base','TABLE.rs232Toggle');
 
 mid_range = round((sweep_range(2)-sweep_range(1))/2)+sweep_range(1);
 if rs232Toggle == 1
