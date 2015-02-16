@@ -1,8 +1,8 @@
 function sweepTable()
 
-sweep_range = evalin('base','SERIAL.sweep_range');
-scan_velocity = evalin('base','SERIAL.scan_velocity');
-norm_velocity = evalin('base','SERIAL.norm_velocity');
+sweep_range = evalin('base','TABLE.sweep_range');
+scan_velocity = evalin('base','TABLE.scan_velocity');
+norm_velocity = evalin('base','TABLE.norm_velocity');
 rs232Toggle = evalin('base','SETUP.rs232Toggle');
 
 if rs232Toggle == 1

@@ -7,6 +7,7 @@ origin = evalin('base','origin');
 Trans = evalin('base', 'Trans');
 Receive = evalin('base', 'Receive');
 txFocus = evalin('base', 'PHASED_B.focusMM');
+rcv_i = evalin('base','paGuideRcvStart');
 
 persistent nframeBmode
 if isempty(nframeBmode); nframeBmode = 1; end
@@ -15,7 +16,7 @@ if exist(dir,'file')~=7; mkdir(dir); end
 name = ['bmode_full_' label '_' datestr(now,'yyyymmdd_HHMMSS') '_' num2str(nframeBmode)];
 path = [dir name];
 
-numRcvSamples = Receive(1).endSample-Receive(1).startSample+1;
+numRcvSamples = Receive(rcv_i+1).endSample-Receive(rcv_i+1).startSample+1;
 tmp = RData(1:(numRcvSamples*nr),[1:32 97:128],1);
 tmp_rf = reshape(tmp,[numRcvSamples,nr,64]);
 tmp_rf = permute(tmp_rf,[1 3 2]);
@@ -33,7 +34,7 @@ rfdata.numRcvChannels = 64;
 rfdata.numXmtRxEvents = nr;
 rfdata.elementSpacingMM = Trans.spacingMm;
 rfdata.XMTspacingMM = rfdata.elementSpacingMM;
-rfdata.samplingRateMHz = Trans.frequency*Receive(1).samplesPerWave;
+rfdata.samplingRateMHz = Trans.frequency*Receive(rcv_i+1).samplesPerWave;
 rfdata.frequencyMHz = Trans.frequency;
 rfdata.focusMM = txFocus;
 rfdata.theta = angles;

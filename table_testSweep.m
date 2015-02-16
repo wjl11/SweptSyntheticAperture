@@ -3,7 +3,7 @@ function table_testSweep(hObject, eventdata)
 sweep_range = evalin('base','TABLE.sweep_range');
 scan_velocity = evalin('base','TABLE.scan_velocity');
 norm_velocity = evalin('base','TABLE.norm_velocity');
-rs232Toggle = evalin('base','TABLE.rs232Toggle');
+rs232Toggle = evalin('base','SETUP.rs232Toggle');
 
 if rs232Toggle == 1
     s_port = evalin('base','s_port');

@@ -21,14 +21,15 @@
 vsx_path = '/home/wjl11/Matlab Simulator/';
 addpath(genpath(vsx_path));
 
+clear all
 %%%%%%%%%%%%%%%%%%%%%%
 % Imaging Case Setup %
 %%%%%%%%%%%%%%%%%%%%%%
-SETUP.debugFlag = 0;            % 1 [show SSA rf], 0 [no SSA display]
 SETUP.simToggle = 1;            % 1 [simulation], 0 [probe connected]
 SETUP.rs232Toggle = 0;          % 1 [table com on], 0 [table com off]
-SETUP.scanType = input('Scan type [manual/turntable]: ','s');   % 'manual' [manual scanning]
-                                % 'turntable' [turn table scanning]     
+SETUP.scanType = input('Scan type [manual/turntable]: ','s');   
+                                % 'manual' [manual scanning]
+                                % 'turntable' [turn table scanning]
                             
 %%%%%%%%%%%%%%%%%%%%%%
 % General Parameters %
@@ -54,10 +55,14 @@ SSA.nAngles = length(SSA.pwAngles);
 % FOCUSED:
 SSA.focusMM = 90;           % (not implemented in version 11)
 
-%%%%%%%%%%%%%%%%%%%%%%
-% Full SA Parameters %
-%%%%%%%%%%%%%%%%%%%%%%
-% IN PROGRESS....
+%%%%%%%%%%%%%%%%%
+% SA Parameters %
+%%%%%%%%%%%%%%%%%
+SA.txFnum = 0;
+SA.numEl = 1;
+SA.PRF = 10;
+SA.nRay = numEl-SA.numEl+1;
+SA.rowsPerFrame = SA.nRay*4096;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Phased B-mode Parameters %
@@ -72,7 +77,7 @@ PHASED_B.tPulse = 250;      % time between phased tx [us]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Planewave B-mode parameters %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-PW_B.endDepthMM = PHASED_B.endDepthMM;
+PW_B.endDepthMM = SSA.endDepthMM;
 PW_B.PRT = 1e4;             % time between pw tx [us]
 
 IM_STATE = 'pa';            % default guidance imaging mode
@@ -86,6 +91,7 @@ SSA_TYPE = [];
 % BUFFER SIZES
 imgBuffer = 10;
 bmodeSaveFrames = 2;
+saSaveFrames = 1;
 
 % TURN TABLE SWEEP LIMITS AND SETTINGS
 TABLE.sweep_range = [0.0 45.0];
@@ -258,7 +264,10 @@ Resource.RcvBuffer(3).colsPerFrame = Resource.Parameters.numRcvChannels;
 Resource.RcvBuffer(3).numFrames = bmodeSaveFrames;
 
 % RESOURCE BUFFER 4 (ALL SA FRAMES)
-% IN PROGRESS...
+Resource.RcvBuffer(4).datatype = 'int16';
+Resource.RcvBuffer(4).rowsPerFrame = SA.rowsPerFrame; 
+Resource.RcvBuffer(4).colsPerFrame = Resource.Parameters.numRcvChannels;
+Resource.RcvBuffer(4).numFrames = saSaveFrames;
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % Transmit Structures %
@@ -277,7 +286,7 @@ TW.Parameters = [Trans.frequency,.67,2,1];
 % **TW(1).Parameters = [36,17,2,1];   % A, B, C, D [old definition of TW]
 
 % TRANSMIT STRUCTURE DEFINITION
-numTxDef = PHASED_B.nRay+1+SSA.nAngles+1;
+numTxDef = PHASED_B.nRay+1+SSA.nAngles+SA.nRay;
 TX = repmat(struct('waveform', 1, ...
                    'Origin', [0,0,0], ...
                    'focus', 0, ... % in wavelengths; 
@@ -318,16 +327,18 @@ for n = 1:SSA.nAngles
     TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 end
 
-% FOCUSED SSA TX 
-% - single tx struct defined
-fssaTxStart = tx_i;
-tx_i = tx_i+1;
-ssa_foc = round(SSA.focusMM/1000/(c/(Trans.frequency*1e6)));
-TX(tx_i).focus = ssa_foc;
-TX(tx_i).Delay = computeTXDelays(TX(tx_i));
-
 % FULL SA TX 
-% IN PROGRESS...
+saTxStart = tx_i;
+SA.txFocus = SA.txFnum*SA.numEl*Trans.spacing;
+for n = 1:SA.nRay
+    tx_i = tx_i+1;
+    TX(tx_i).Origin = [SFormat(1).FirstRayLoc(1)...
+        +(n-1+floor(SA.numEl/2))*Trans.spacing, 0.0, 0.0];
+    TX(tx_i).focus = SA.txFocus;
+    TX(tx_i).Apod(:) = 0;
+    TX(tx_i).Apod(n:n+SA.numEl-1) = 1.0;
+    TX(tx_i).Delay = computeTXDelays(TX(tx_i));
+end
 
 % TRANSMIT POWER CONTROLLER 
 TPC(1).name = 'B-mode';
@@ -348,7 +359,8 @@ numRcvDef = ...
     PHASED_B.nRay*Resource.RcvBuffer(1).numFrames ...   % frames for phased array imaging 
     + Resource.RcvBuffer(1).numFrames ...               % frames for pw imaging
     + Resource.RcvBuffer(2).numFrames ...               % frames for SSA acquisition
-    + PHASED_B.nRay*Resource.RcvBuffer(3).numFrames;    % frames for phased array acquisition
+    + PHASED_B.nRay*Resource.RcvBuffer(3).numFrames...  % frames for phased array acquisition
+    + SA.nRay*Resource.RcvBuffer(4).numFrames;          % frames for SA acquisition
 
 % RECEIVE STRUCTURE DEFINITION
 Receive = repmat(struct('Apod', ones(1,numEl), ...
@@ -419,6 +431,20 @@ for i = 1:Resource.RcvBuffer(3).numFrames
         Receive(k+j).framenum = i;
         Receive(k+j).acqNum = j; 
         Receive(k+j).bufnum = 3; % added to specify save b-mode buffer
+    end
+end
+
+% SA ACQUISITION RCV
+saRcvStart = rcv_i;
+for i = 1:Resource.RcvBuffer(4).numFrames
+    k = SA.nRay*(i-1)+saRcvStart;
+    for j = 1:SA.nRay
+        rcv_i = rcv_i+1;
+        Receive(k+j).startDepth = SFormat(1).startDepth;
+        Receive(k+j).endDepth = SFormat(1).startDepth + wlsPer128*ceil(maxAcqLengthBmode/wlsPer128);
+        Receive(k+j).framenum = i;
+        Receive(k+j).acqNum = j;
+        Receive(k+j).bufNum = 4;
     end
 end
 
@@ -522,7 +548,7 @@ p_i = p_i+1;
 pIdx.saveBmodeFull = p_i;
 Process(p_i).classname = 'External';
 Process(p_i).method = 'saveBmodeFull';
-Process(7).Parameters = {'srcbuffer','receive',...
+Process(p_i).Parameters = {'srcbuffer','receive',...
     'srcbufnum',3,...
     'srcframenum',0,... 
     'dstbuffer','none'};
@@ -554,6 +580,16 @@ Process(p_i).classname = 'External';
 Process(p_i).method = 'sweepTable';
 Process(p_i).Parameters = {'srcbuffer','none',...
     'srcframenum','none',... 
+    'dstbuffer','none'};
+p_i = p_i+1;
+
+% SAVE SSA FRAMES (EXTERNAL)
+pIdx.saveSA = p_i;
+Process(p_i).classname = 'External';
+Process(p_i).method = 'saveSA';
+Process(p_i).Parameters = {'srcbuffer','receive',...
+    'srcbufnum',4,...
+    'srcframenum',0,... 
     'dstbuffer','none'};
 p_i = p_i+1;
 
@@ -608,6 +644,12 @@ nsc = nsc+1;
 scIdx.delayFramePW = nsc; 
 SeqControl(nsc).command = 'timeToNextAcq'; 
 SeqControl(nsc).argument = PW_B.PRT;
+nsc = nsc+1;
+
+% PLANEWAVE TIMING
+scIdx.delayFrameSA = nsc; 
+SeqControl(nsc).command = 'timeToNextAcq'; 
+SeqControl(nsc).argument = round(1/SA.PRF*1e6 - 64*PHASED_B.tPulse);
 nsc = nsc+1;
 
 % ****************** GUIDANCE PHASED ARRAY BMODE EVENTS *******************
@@ -860,19 +902,6 @@ for ic = 1:2
                 j = j+1;
                 if j > SSA.nAngles; j = 1; end
             end
-            
-        end
-
-        if SETUP.debugFlag == 1
-            Event(n).info = 'Display SSA RF for debugging.';
-            Event(n).tx = 0;
-            Event(n).rcv = 0; 
-            Event(n).recon = 0; 
-            Event(n).process = pIdx.displaySSA; 
-            Event(n).seqControl = nsc; 
-                SeqControl(nsc).command = 'returnToMatlab';
-                nsc = nsc+1;
-            n = n+1;
         end
     end
 
@@ -889,7 +918,7 @@ for ic = 1:2
         nsc = nsc+3;
     n = n+1;
 
-    Event(n).info = 'Save SSA frames and return to imaging'; 
+    Event(n).info = 'Save SSA frames'; 
     Event(n).tx = 0;         
     Event(n).rcv = 0;        
     Event(n).recon = 0;      
@@ -910,6 +939,71 @@ for ic = 1:2
         nsc = nsc+1;
     n = n+1;
 end
+
+%************************* SA ACQUISITION EVENTS **************************
+SA_acq = n;
+
+% Use same TCP profile as SSA
+
+Event(n).info = 'Switch to SA acquire';
+Event(n).tx = 0;         
+Event(n).rcv = 0;       
+Event(n).recon = 0;      
+Event(n).process = 0;
+Event(n).seqControl = scIdx.profileSSA;
+n = n+1;
+    
+for i = 1:Resource.RcvBuffer(4).numFrames
+    for j = 1:SA.nRay
+        Event(n).info = 'Acquire ray line';
+        Event(n).tx = saTxStart+j; 
+        Event(n).rcv = saRcvStart+SA.nRay*(i-1)+j;
+        Event(n).recon = 0; 
+        Event(n).process = 0; 
+        Event(n).seqControl = scIdx.delayLinePA; 
+        n = n+1;
+    end
+    Event(n-1).seqControl = [scIdx.delayFrameSA,nsc];
+        SeqControl(nsc).command = 'transferToHost'; 
+        nsc = nsc+1;
+end
+Event(n-1).seqControl = [scIdx.delayFrameSA,nsc-1];
+    SeqControl(nsc-1).condition = 'waitForProcessing'; 
+    SeqControl(nsc-1).argument = nsc-1;
+
+Event(n).info = 'Wait for transfer complete';
+Event(n).tx = 0; 
+Event(n).rcv = 0; 
+Event(n).recon = 0; 
+Event(n).process = 0; 
+Event(n).seqControl = [nsc,nsc+1]; 
+    SeqControl(nsc).command = 'waitForTransferComplete';
+    SeqControl(nsc).argument = nsc-1;
+    SeqControl(nsc+1).command = 'markTransferProcessed';
+    SeqControl(nsc+1).argument = nsc-1;
+    nsc = nsc+2;
+n = n+1;
+
+Event(n).info = 'Save SA frame';
+Event(n).tx = 0; 
+Event(n).rcv = 0; 
+Event(n).recon = 0; 
+Event(n).process = pIdx.saveSA; 
+Event(n).seqControl = nsc;
+    SeqControl(nsc).command = 'returnToMatlab';
+    nsc = nsc+1;
+n = n+1;
+
+Event(n).info = 'Jump back to guidance b-mode';
+Event(n).tx = 0;        
+Event(n).rcv = 0;       
+Event(n).recon = 0;     
+Event(n).process = 0; 
+Event(n).seqControl = nsc;
+    SeqControl(nsc).command = 'jump';
+    SeqControl(nsc).argument = bmode_image;
+    nsc = nsc+1;
+n = n+1;
 
 %************************ GUI elements ************************************
 ui = 1;
