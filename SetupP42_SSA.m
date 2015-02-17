@@ -1,21 +1,21 @@
 % ***** P4-2 Swept Synthetic Aperture Image Acquisition Routine *****
-% Version 12 (debug)
+% Version 12 (debug stage)
 %
 % Overhaul from original version 10.1 framework 
 %     Git SHA v10.1: c26a26bf91c412d7f06841dca3f03c2e8a702fe9 (working)
 %     Git SHA v11: d3349b3c815baa076c7b8e26f63e52a84b85e509 
 %
-% Latest revision 02/11/15 (not debugged) - by Will Long
-% -Modifications to improve code readibility
+% Latest revision 02/17/15 (debugging in progress) - by Will Long
+% -Modifications to improve code readibility 
 % -Revisions to reduce redundancy of turn table rs232 communication
 % -Implementation of hand held routine
 % -Focused Tx NOT implemented
 % -Eliminated B-mode acquisitions before and after SSA acquisition
 % -Revised Tx and Rcv structure indexing
+% -Implemented full SA acquisition
 
 % TO-DOs
-% -Implement full SA acquisition
-% -Error in save bmode full 
+% -Debug SA acquisition routine
 % -Optimize save routines (-v7-3 saving should be implemented)
 
 vsx_path = '/home/wjl11/Matlab Simulator/';
@@ -1058,7 +1058,6 @@ scriptName = sprintf('P4-2_SSA_%s',SETUP.scanType);
 disp(['filename =''' scriptName ''';VSX'])
 save(scriptName);
 return 
-
 
 %CB_pwSSA
 init_pwSSA(hObject,eventdata)
