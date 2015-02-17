@@ -16,7 +16,7 @@
 % TO-DOs
 % -Implement full SA acquisition
 % -Error in save bmode full 
-% -Optimize save routines (-v7-3 saving should be inplemented)
+% -Optimize save routines (-v7-3 saving should be implemented)
 
 vsx_path = '/home/wjl11/Matlab Simulator/';
 addpath(genpath(vsx_path));
@@ -1012,10 +1012,13 @@ UI(ui).Control = {'UserB3','Style','VsPushButton','Tag','pwImage','Label','Toggl
 UI(ui).Callback = text2cell('%CB_imagingToggle');
 ui = ui+1;
 
-UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','saveBmodeFull','Label','Save B-mode'};
+UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','saveBmodeFull','Label','Acq B-mode'};
 UI(ui).Callback = text2cell('%CB_saveBmodeFull');
 ui = ui+1;
 
+UI(ui).Control = {'UserB6','Style','VsPushButton','Tag','saveSA','Label','Acq SA'}; % change UI location
+UI(ui).Callback = text2cell('%CB_saveSA');
+ui = ui+1;
 
 switch SETUP.scanType
     case 'manual'
@@ -1071,6 +1074,11 @@ return
 init_saveBmodeFull(hObject,eventdata)
 return
 %CB_saveBmodeFull
+
+%CB_saveSA
+init_saveSA(hObject,eventdata)
+return
+%CB_saveSA
 
 %CB_imagingToggle
 imagingToggle(hObject,eventdata)
