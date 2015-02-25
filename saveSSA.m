@@ -8,11 +8,11 @@ steerAngles = evalin('base','steerAngles');
 IM_STATE = evalin('base','IM_STATE');
 SSA_TYPE = evalin('base','SSA_TYPE');
 
-persistent nframeSA
-if isempty(nframeSA); nframeSA = 1;end
+persistent nframeSSA
+if isempty(nframeSSA); nframeSSA = 1;end
 dir = './data/';
 if exist(dir,'file')~=7; mkdir(dir); end
-name = ['ssa_' label '_' datestr(now,'yyyymmdd_HHMMSS') '_' num2str(nframeSA)];
+name = ['ssa_' label '_' datestr(now,'yyyymmdd_HHMMSS') '_' num2str(nframeSSA)];
 path = [dir name];
 
 rf = RData(:,[1:32 97:128],:);
@@ -32,10 +32,10 @@ if strcmpi(label,'db') || strcmpi(label,'')
     disp('[DEBUG MODE] No file saved.')
 else
     disp(['Saving SA data to ' path '.mat']);
-    save([path '.mat'],'rf','rfdata');
+    save([path '.mat'],'rf','rfdata','-v7.3');
     disp(['SA data saved to ' path '.mat']);
 end
-nframeSA = nframeSA+1;
+nframeSSA = nframeSSA+1;
 
 IM_STATE = 'pa';
 assignin('base','IM_STATE',IM_STATE);

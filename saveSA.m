@@ -8,7 +8,7 @@ Resource = evalin('base', 'Resource');
 SFormat = evalin('base', 'SFormat');
 TW = evalin('base', 'TW');
 TX = evalin('base', 'TX');
-txFocus = evalin('base', 'SA.focusMM');
+txFocus = evalin('base', 'SA.txFocus');
 rcv_i = evalin('base','saRcvStart');
 
 persistent nframeSA
@@ -42,7 +42,7 @@ if strcmpi(label,'db') || strcmpi(label,'')
     disp('[DEBUG MODE] No file saved.')
 else
     disp(['Saving SA frame to ' path]);
-    save([path '.mat'],'rf','rfdata');
+    save([path '.mat'],'rf','rfdata','-v7.3');
     disp(['SA data saved to ' path]);
 end
 

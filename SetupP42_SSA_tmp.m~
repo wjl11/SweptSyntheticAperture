@@ -258,16 +258,16 @@ Resource.RcvBuffer(2).numFrames = SSA.nFrames;
 % the probe
 
 % RESOURCE BUFFER 3 (ALL BMODE FRAMES)
-Resource.RcvBuffer(3).datatype = 'int16';
-Resource.RcvBuffer(3).rowsPerFrame = PHASED_B.rowsPerFrame; 
-Resource.RcvBuffer(3).colsPerFrame = Resource.Parameters.numRcvChannels;
-Resource.RcvBuffer(3).numFrames = bmodeSaveFrames;
+% Resource.RcvBuffer(3).datatype = 'int16';
+% Resource.RcvBuffer(3).rowsPerFrame = PHASED_B.rowsPerFrame; 
+% Resource.RcvBuffer(3).colsPerFrame = Resource.Parameters.numRcvChannels;
+% Resource.RcvBuffer(3).numFrames = bmodeSaveFrames;
 
 % RESOURCE BUFFER 4 (ALL SA FRAMES)
-Resource.RcvBuffer(4).datatype = 'int16';
-Resource.RcvBuffer(4).rowsPerFrame = SA.rowsPerFrame; 
-Resource.RcvBuffer(4).colsPerFrame = Resource.Parameters.numRcvChannels;
-Resource.RcvBuffer(4).numFrames = saSaveFrames;
+Resource.RcvBuffer(3).datatype = 'int16';
+Resource.RcvBuffer(3).rowsPerFrame = SA.rowsPerFrame; 
+Resource.RcvBuffer(3).colsPerFrame = Resource.Parameters.numRcvChannels;
+Resource.RcvBuffer(3).numFrames = saSaveFrames;
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % Transmit Structures %
@@ -359,8 +359,7 @@ numRcvDef = ...
     PHASED_B.nRay*Resource.RcvBuffer(1).numFrames ...   % frames for phased array imaging 
     + Resource.RcvBuffer(1).numFrames ...               % frames for pw imaging
     + Resource.RcvBuffer(2).numFrames ...               % frames for SSA acquisition
-    + PHASED_B.nRay*Resource.RcvBuffer(3).numFrames...  % frames for phased array acquisition
-    + SA.nRay*Resource.RcvBuffer(4).numFrames;          % frames for SA acquisition
+    + SA.nRay*Resource.RcvBuffer(3).numFrames;          % frames for SA acquisition
 
 % RECEIVE STRUCTURE DEFINITION
 Receive = repmat(struct('Apod', ones(1,numEl), ...
@@ -420,23 +419,23 @@ for i = 1:Resource.RcvBuffer(2).numFrames
     Receive(k).bufnum = 2; 
 end
 
-% PHASED ARRAY ACQUISITION RCV
-paAcqRcvStart = rcv_i;
-for i = 1:Resource.RcvBuffer(3).numFrames
-    k = PHASED_B.nRay*(i-1)+paAcqRcvStart;
-    for j = 1:PHASED_B.nRay
-        rcv_i = rcv_i+1;
-        Receive(k+j).startDepth = SFormat(1).startDepth;
-        Receive(k+j).endDepth = SFormat(1).startDepth + wlsPer128*ceil(maxAcqLengthBmode/wlsPer128);
-        Receive(k+j).framenum = i;
-        Receive(k+j).acqNum = j; 
-        Receive(k+j).bufnum = 3; % added to specify save b-mode buffer
-    end
-end
+% % PHASED ARRAY ACQUISITION RCV
+% paAcqRcvStart = rcv_i;
+% for i = 1:Resource.RcvBuffer(3).numFrames
+%     k = PHASED_B.nRay*(i-1)+paAcqRcvStart;
+%     for j = 1:PHASED_B.nRay
+%         rcv_i = rcv_i+1;
+%         Receive(k+j).startDepth = SFormat(1).startDepth;
+%         Receive(k+j).endDepth = SFormat(1).startDepth + wlsPer128*ceil(maxAcqLengthBmode/wlsPer128);
+%         Receive(k+j).framenum = i;
+%         Receive(k+j).acqNum = j; 
+%         Receive(k+j).bufnum = 3; % added to specify save b-mode buffer
+%     end
+% end
 
 % SA ACQUISITION RCV
 saRcvStart = rcv_i;
-for i = 1:Resource.RcvBuffer(4).numFrames
+for i = 1:Resource.RcvBuffer(3).numFrames
     k = SA.nRay*(i-1)+saRcvStart;
     for j = 1:SA.nRay
         rcv_i = rcv_i+1;
@@ -444,7 +443,7 @@ for i = 1:Resource.RcvBuffer(4).numFrames
         Receive(k+j).endDepth = SFormat(1).startDepth + wlsPer128*ceil(maxAcqLengthBmode/wlsPer128);
         Receive(k+j).framenum = i;
         Receive(k+j).acqNum = j;
-        Receive(k+j).bufNum = 4;
+        Receive(k+j).bufNum = 3;
     end
 end
 
@@ -756,68 +755,68 @@ Event(n).seqControl = nsc;
 n = n+1;
 
 %******************** PHASED ARRAY ACQUISITION EVENTS *********************
-bmode_acq = n;
-
-Event(n).info = 'Switch to b-mode acquire';
-Event(n).tx = 0;         
-Event(n).rcv = 0;       
-Event(n).recon = 0;      
-Event(n).process = 0;
-Event(n).seqControl = scIdx.profileBmode;
-n = n+1;
-
-for i = 1:Resource.RcvBuffer(3).numFrames
-    for j = 1:PHASED_B.nRay                 
-        Event(n).info = 'Acquire ray line';
-        Event(n).tx = paTxStart+j;         
-        Event(n).rcv = paAcqRcvStart+PHASED_B.nRay*(i-1)+j;   
-        Event(n).recon = 0;      
-        Event(n).process = 0;    
-        Event(n).seqControl = scIdx.delayLinePA;
-        n = n+1;
-    end
-
-Event(n-1).seqControl = [scIdx.delayFramePA,nsc];
-    SeqControl(nsc).command = 'transferToHost';
-    SeqControl(nsc).condition = 'waitForProcessing';
-    SeqControl(nsc).argument = nsc;
-    nsc = nsc+1;
-
-Event(n).info = 'Wait for transfer complete';
-Event(n).tx = 0;         
-Event(n).rcv = 0;        
-Event(n).recon = 0;      
-Event(n).process = 0;    
-Event(n).seqControl = [nsc,nsc+1]; 
-    SeqControl(nsc).command = 'waitForTransferComplete';
-    SeqControl(nsc).argument = nsc-1;
-    SeqControl(nsc+1).command = 'markTransferProcessed';
-    SeqControl(nsc+1).argument = nsc-1;
-    nsc = nsc+2;
-n = n+1;
-
-end
-
-Event(n).info = 'Save full B-mode data (RF and image)';
-Event(n).tx = 0; 
-Event(n).rcv = 0; 
-Event(n).recon = 0; 
-Event(n).process = pIdx.saveBmodeFull; 
-Event(n).seqControl = nsc;
-    SeqControl(nsc).command = 'returnToMatlab';
-    nsc = nsc+1;
-n = n+1;
-
-Event(n).info = 'Jump back to guidance b-mode'; 
-Event(n).tx = 0;       
-Event(n).rcv = 0;
-Event(n).recon = 0;     
-Event(n).process = 0; 
-Event(n).seqControl = nsc;
-    SeqControl(nsc).command = 'jump';
-    SeqControl(nsc).argument = bmode_image;
-    nsc = nsc+1;
-n = n+1;
+% bmode_acq = n;
+% 
+% Event(n).info = 'Switch to b-mode acquire';
+% Event(n).tx = 0;         
+% Event(n).rcv = 0;       
+% Event(n).recon = 0;      
+% Event(n).process = 0;
+% Event(n).seqControl = scIdx.profileBmode;
+% n = n+1;
+% 
+% for i = 1:Resource.RcvBuffer(3).numFrames
+%     for j = 1:PHASED_B.nRay                 
+%         Event(n).info = 'Acquire ray line';
+%         Event(n).tx = paTxStart+j;         
+%         Event(n).rcv = paAcqRcvStart+PHASED_B.nRay*(i-1)+j;   
+%         Event(n).recon = 0;      
+%         Event(n).process = 0;    
+%         Event(n).seqControl = scIdx.delayLinePA;
+%         n = n+1;
+%     end
+% 
+% Event(n-1).seqControl = [scIdx.delayFramePA,nsc];
+%     SeqControl(nsc).command = 'transferToHost';
+%     SeqControl(nsc).condition = 'waitForProcessing';
+%     SeqControl(nsc).argument = nsc;
+%     nsc = nsc+1;
+% 
+% Event(n).info = 'Wait for transfer complete';
+% Event(n).tx = 0;         
+% Event(n).rcv = 0;        
+% Event(n).recon = 0;      
+% Event(n).process = 0;    
+% Event(n).seqControl = [nsc,nsc+1]; 
+%     SeqControl(nsc).command = 'waitForTransferComplete';
+%     SeqControl(nsc).argument = nsc-1;
+%     SeqControl(nsc+1).command = 'markTransferProcessed';
+%     SeqControl(nsc+1).argument = nsc-1;
+%     nsc = nsc+2;
+% n = n+1;
+% 
+% end
+% 
+% Event(n).info = 'Save full B-mode data (RF and image)';
+% Event(n).tx = 0; 
+% Event(n).rcv = 0; 
+% Event(n).recon = 0; 
+% Event(n).process = pIdx.saveBmodeFull; 
+% Event(n).seqControl = nsc;
+%     SeqControl(nsc).command = 'returnToMatlab';
+%     nsc = nsc+1;
+% n = n+1;
+% 
+% Event(n).info = 'Jump back to guidance b-mode'; 
+% Event(n).tx = 0;       
+% Event(n).rcv = 0;
+% Event(n).recon = 0;     
+% Event(n).process = 0; 
+% Event(n).seqControl = nsc;
+%     SeqControl(nsc).command = 'jump';
+%     SeqControl(nsc).argument = bmode_image;
+%     nsc = nsc+1;
+% n = n+1;
 
 %************************ SSA ACQUISITION EVENTS **************************
 % IMAGING CASE 1: PLANEWAVE SSA
@@ -953,7 +952,7 @@ Event(n).process = 0;
 Event(n).seqControl = scIdx.profileSSA;
 n = n+1;
     
-for i = 1:Resource.RcvBuffer(4).numFrames
+for i = 1:Resource.RcvBuffer(3).numFrames
     for j = 1:SA.nRay
         Event(n).info = 'Acquire ray line';
         Event(n).tx = saTxStart+j; 
@@ -967,9 +966,11 @@ for i = 1:Resource.RcvBuffer(4).numFrames
         SeqControl(nsc).command = 'transferToHost'; 
         nsc = nsc+1;
 end
-Event(n-1).seqControl = [scIdx.delayFrameSA,nsc-1];
+Event(n).seqControl = [scIdx.delayFrameSA,nsc-1];
     SeqControl(nsc-1).condition = 'waitForProcessing'; 
-    SeqControl(nsc-1).argument = nsc-1;
+    SeqControl(nsc-1).argument = nsc-2;
+    nsc = nsc+1;
+n = n+1;
 
 Event(n).info = 'Wait for transfer complete';
 Event(n).tx = 0; 
@@ -1012,11 +1013,11 @@ UI(ui).Control = {'UserB3','Style','VsPushButton','Tag','pwImage','Label','Toggl
 UI(ui).Callback = text2cell('%CB_imagingToggle');
 ui = ui+1;
 
-UI(ui).Control = {'UserB2','Style','VsPushButton','Tag','saveBmodeFull','Label','Acq B-mode'};
+UI(ui).Control = {'UserB2','Style','VsPushButton','Tag','saveBmodeFull','Label','B-mode'};
 UI(ui).Callback = text2cell('%CB_saveBmodeFull');
 ui = ui+1;
 
-UI(ui).Control = {'UserB1','Style','VsPushButton','Tag','saveSA','Label','Acq SA'}; % change UI location
+UI(ui).Control = {'UserB1','Style','VsPushButton','Tag','saveSA','Label','SA'}; % change UI location
 UI(ui).Callback = text2cell('%CB_saveSA');
 ui = ui+1;
 

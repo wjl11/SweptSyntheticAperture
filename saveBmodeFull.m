@@ -13,7 +13,7 @@ persistent nframeBmode
 if isempty(nframeBmode); nframeBmode = 1; end
 dir = './data/';
 if exist(dir,'file')~=7; mkdir(dir); end
-name = ['bmode_full_' label '_' datestr(now,'yyyymmdd_HHMMSS') '_' num2str(nframeBmode)];
+name = ['bmode_' label '_' datestr(now,'yyyymmdd_HHMMSS') '_' num2str(nframeBmode)];
 path = [dir name];
 
 numRcvSamples = Receive(rcv_i+1).endSample-Receive(rcv_i+1).startSample+1;

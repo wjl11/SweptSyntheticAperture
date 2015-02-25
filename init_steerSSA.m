@@ -8,7 +8,7 @@ evalin('base','Resource.Parameters.startEvent = steerSSA_acq;');
 assignin('base','Control',Control);
 
 disp(['Jump to event: ' num2str(steerSSA_acq)])
-disp('Initiate steered SA imaging.')
+disp('Initiate steered SSA imaging.')
 
 SSA_TYPE = 'steer_pw';
 assignin('base','SSA_TYPE',SSA_TYPE);

@@ -1012,42 +1012,42 @@ UI(ui).Control = {'UserB3','Style','VsPushButton','Tag','pwImage','Label','Toggl
 UI(ui).Callback = text2cell('%CB_imagingToggle');
 ui = ui+1;
 
-UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','saveBmodeFull','Label','Acq B-mode'};
+UI(ui).Control = {'UserB2','Style','VsPushButton','Tag','saveBmodeFull','Label','B-mode'};
 UI(ui).Callback = text2cell('%CB_saveBmodeFull');
 ui = ui+1;
 
-UI(ui).Control = {'UserB6','Style','VsPushButton','Tag','saveSA','Label','Acq SA'}; % change UI location
+UI(ui).Control = {'UserB1','Style','VsPushButton','Tag','saveSA','Label','SA'}; % change UI location
 UI(ui).Callback = text2cell('%CB_saveSA');
 ui = ui+1;
 
 switch SETUP.scanType
     case 'manual'
-        UI(ui).Control = {'UserC3','Style','VsPushButton','Tag','pwSSA','Label','pw SSA'};
+        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','pwSSA','Label','pw SSA'};
         UI(ui).Callback = text2cell('%CB_pwSSA');
         ui = ui+1;
 
-        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','steerSSA','Label','steer SSA'};
+        UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','steerSSA','Label','steer SSA'};
         UI(ui).Callback = text2cell('%CB_steerSSA');
         ui = ui+1;
         
     case 'turntable'
-        UI(ui).Control = {'UserC3','Style','VsPushButton','Tag','pwSSA','Label','pw SSA'};
+        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','pwSSA','Label','pw SSA'};
         UI(ui).Callback = text2cell('%CBtable_pwSSA');
         ui = ui+1;
 
-        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','steerSSA','Label','steer SSA'};
+        UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','steerSSA','Label','steer SSA'};
         UI(ui).Callback = text2cell('%CBtable_steerSSA');
         ui = ui+1;
 
-        UI(ui).Control = {'UserB5','Style','VsPushButton','Tag','testSweep','Label','Test Sweep'};
+        UI(ui).Control = {'UserB6','Style','VsPushButton','Tag','testSweep','Label','Test Sweep'};
         UI(ui).Callback = text2cell('%CB_testSweep');
         ui = ui+1;
 
-        UI(ui).Control = {'UserB2','Style','VsPushButton','Tag','resetRS232','Label','Reset RS232'};
+        UI(ui).Control = {'UserB4','Style','VsPushButton','Tag','resetRS232','Label','Reset RS232'};
         UI(ui).Callback = text2cell('%CB_resetRS232');
         ui = ui+1;
         
-        UI(ui).Control = {'UserB4','Style','VsPushButton','Tag','mvCenter','Label','Center Probe'};
+        UI(ui).Control = {'UserB5','Style','VsPushButton','Tag','mvCenter','Label','Center Probe'};
         UI(ui).Callback = text2cell('%CB_mvCenter');
         ui = ui+1;
 end

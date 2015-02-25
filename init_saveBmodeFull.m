@@ -8,4 +8,5 @@ Control(1).Parameters = {'Parameters',1,'startEvent',bmode_acq};
 evalin('base','Resource.Parameters.startEvent = bmode_acq;');
 assignin('base','Control',Control);
 
+disp('Initiate B-mode acquisition.')
 disp(['Jump to event: ' num2str(bmode_acq)])

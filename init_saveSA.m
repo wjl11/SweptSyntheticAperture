@@ -8,4 +8,5 @@ Control(1).Parameters = {'Parameters',1,'startEvent',SA_acq};
 evalin('base','Resource.Parameters.startEvent = SA_acq;');
 assignin('base','Control',Control);
 
+disp('Initiate SA acquisition.')
 disp(['Jump to event: ' num2str(SA_acq)])

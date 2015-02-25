@@ -8,7 +8,7 @@ evalin('base','Resource.Parameters.startEvent = SSA_acq;');
 assignin('base','Control',Control);
 
 disp(['Jump to event: ' num2str(SSA_acq)])
-disp('Initiate SA imaging.')
+disp('Initiate planewave SSA imaging.')
 
 SSA_TYPE = 'pw';
 assignin('base','SSA_TYPE',SSA_TYPE);
