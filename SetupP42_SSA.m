@@ -25,8 +25,8 @@ clear all
 %%%%%%%%%%%%%%%%%%%%%%
 % Imaging Case Setup %
 %%%%%%%%%%%%%%%%%%%%%%
-SETUP.simToggle = 1;            % 1 [simulation], 0 [probe connected]
-SETUP.rs232Toggle = 0;          % 1 [table com on], 0 [table com off]
+SETUP.simToggle = 0;            % 1 [simulation], 0 [probe connected]
+SETUP.rs232Toggle = 1;          % 1 [table com on], 0 [table com off]
 SETUP.scanType = input('Scan type [manual/turntable]: ','s');   
                                 % 'manual' [manual scanning]
                                 % 'turntable' [turn table scanning]
@@ -45,7 +45,7 @@ SSA.PRT = 1e3;              % time between SSA acquisitions [us]
 SSA.rowsPerFrame = 4096;
 SSA.endDepthMM = 150;
 SSA.startDepthMM = [];
-SSA.nFrames = 5000;         % WARNING: value overridden in turntable mode
+SSA.nFrames = 1000;         % WARNING: value overridden in turntable mode
 SSA.frameBuffer = 550;      % extra frames to pad turntable acquisition
 
 % STEERED:
@@ -444,7 +444,7 @@ for i = 1:Resource.RcvBuffer(4).numFrames
         Receive(k+j).endDepth = SFormat(1).startDepth + wlsPer128*ceil(maxAcqLengthBmode/wlsPer128);
         Receive(k+j).framenum = i;
         Receive(k+j).acqNum = j;
-        Receive(k+j).bufNum = 4;
+        Receive(k+j).bufnum = 4;
     end
 end
 
