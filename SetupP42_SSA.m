@@ -1,9 +1,13 @@
 % ***** P4-2 Swept Synthetic Aperture Image Acquisition Routine *****
-% Version 12.4 (working)
+% Version 12.4 (debug in progress)
 %
 % Overhaul from original version 10.1 framework 
 %     Git SHA v10.1: c26a26bf91c412d7f06841dca3f03c2e8a702fe9 (working)
 %     Git SHA v11: d3349b3c815baa076c7b8e26f63e52a84b85e509 
+%
+% SA overhaul from version 12.4
+%     Git SHA v12.4: 45b02aea59d05754a60e41e0eeed760918c62fe3 (working)
+%
 %
 % Latest revision 03/01/15 (debugging in process) 
 % -Debug SA acquisition routine (time zero)
@@ -167,7 +171,8 @@ else warning('Serial communication: ON'), end
 freqMHz = 2.50;
 Trans.name = 'P4-2';
 Trans.frequency = freqMHz;          % not needed if using default f0
-Trans.units = 'mm';
+% Trans.units = 'mm'; 
+Trans.units = 'wavelengths'; 
 Trans = computeTrans(Trans);
 Trans.maxHighVoltage = maxVoltage;
 
@@ -334,8 +339,7 @@ saTxStart = tx_i;
 SA.txFocus = SA.txFnum*SA.numEl*Trans.spacing;
 for n = 1:SA.nRay
     tx_i = tx_i+1;
-    TX(tx_i).Origin = [SFormat(1).FirstRayLoc(1)...
-        +(n-1+floor(SA.numEl/2))*Trans.spacing, 0.0, 0.0];
+    TX(tx_i).Origin = [SFormat(1).FirstRayLoc(1)+(n-1+floor(SA.numEl/2))*Trans.spacing, 0.0, 0.0];
     TX(tx_i).focus = SA.txFocus;
     TX(tx_i).Apod(:) = 0;
     TX(tx_i).Apod(n:n+SA.numEl-1) = 1.0;
