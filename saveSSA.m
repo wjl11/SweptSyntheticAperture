@@ -9,7 +9,7 @@ IM_STATE = evalin('base','IM_STATE');
 SSA_TYPE = evalin('base','SSA_TYPE');
 
 persistent nframeSSA
-if isempty(nframeSSA); nframeSSA = 1;end
+if isempty(nframeSSA); nframeSSA = 0;end
 dir = './data/';
 if exist(dir,'file')~=7; mkdir(dir); end
 name = ['ssa_' label '_' datestr(now,'yyyymmdd_HHMMSS') '_' num2str(nframeSSA)];

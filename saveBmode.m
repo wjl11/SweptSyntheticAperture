@@ -9,7 +9,7 @@ Receive = evalin('base', 'Receive');
 txFocus = evalin('base', 'PHASED_B.focusMM');
 
 persistent nframeBmode
-if isempty(nframeBmode); nframeBmode = 1; end
+if isempty(nframeBmode); nframeBmode = 0; end
 dir = './data/';
 if exist(dir,'file')~=7; mkdir(dir); end
 name = ['bmode_' label '_' datestr(now,'yyyymmdd_HHMMSS') '_' num2str(nframeBmode)];
@@ -28,6 +28,7 @@ tmp_rf = permute(tmp_rf,[1 3 2]);
 rf{2} = tmp_rf;
 clear tmp tmp_rf
 
+lambda=c/Trans.frequency/1e6;
 rfdata.c = c;
 rfdata.numRcvChannels = 64;
 rfdata.numXmtRxEvents = nr;
@@ -35,9 +36,17 @@ rfdata.elementSpacingMM = Trans.spacingMm;
 rfdata.XMTspacingMM = rfdata.elementSpacingMM;
 rfdata.samplingRateMHz = Trans.frequency*Receive(1).samplesPerWave;
 rfdata.frequencyMHz = Trans.frequency;
-rfdata.focusMM = txFocus;
-rfdata.theta = angles;
-% rfdata.origin = origin;
+rfdata.timeZero = -(SFormat(1).startDepth+...
+                    Trans.lensCorrection*2+...
+                    TW(1).peak)*Receive(1).samplesPerWave;
+rfdata.focus = txFocus*lambda;
+rfdata.theta=SFormat(1).theta+(0:nr-1)*SFormat(1).rayDelta;
+rfdata.vs=-SFormat.radius*lambda;
+%Correct time zero for each event to the last (closest) element fired
+rfdata.t0_var=zeros(1,128);
+for i=1:nr
+    rfdata.t0_var(i)=max(TX(i).Delay)*lambda;
+end
 
 if strcmpi(label,'db') || strcmpi(label,'')
     disp('[DEBUG MODE] No file saved.')

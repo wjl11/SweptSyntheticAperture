@@ -13,7 +13,7 @@ rcv_i = evalin('base','saRcvStart');
 tx_i = evalin('base','saTxStart');
 
 persistent nframeSA
-if isempty(nframeSA); nframeSA = 1; end
+if isempty(nframeSA); nframeSA = 0; end
 dir = './data/';
 if exist(dir,'file')~=7; mkdir(dir); end
 name = ['sa_' label '_' datestr(now,'yyyymmdd_HHMMSS') '_' num2str(nframeSA)];
@@ -34,10 +34,12 @@ rfdata.elementSpacingMM = Trans.spacingMm;
 rfdata.XMTspacingMM = rfdata.elementSpacingMM;
 rfdata.samplingRateMHz = Trans.frequency*Receive(rcv_i+1).samplesPerWave;
 rfdata.frequencyMHz = Trans.frequency;
-rfdata.focusMM = txFocus*c/(Trans.frequency*1e6);
 rfdata.timeZero = -(SFormat(1).startDepth+...
+                Trans.lensCorrection*2+...
                 TW(1).peak+...
                 min(TX(tx_i+nr).Delay))*Receive(rcv_i+1).samplesPerWave;
+            
+rfdata.focus = txFocus*c/(Trans.frequency*1e6);
 
 if strcmpi(label,'db') || strcmpi(label,'')
     disp('[DEBUG MODE] No file saved.')

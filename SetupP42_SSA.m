@@ -42,7 +42,7 @@ SETUP.scanType = input('Scan type [manual/turntable]: ','s');
 %%%%%%%%%%%%%%%%%%%%%%
 maxVoltage = 50;            % max voltage used for transmit
 numEl = 64;                 % number of physical elements (1/2 tot channel)
-c = 1452;                   % speed of sound (changed from 1540)
+c = 1460;                   % speed of sound (changed from 1540)
 
 %%%%%%%%%%%%%%%%%%
 % SSA Parameters %
@@ -51,7 +51,7 @@ SSA.PRT = 1e3;              % time between SSA acquisitions [us]
 SSA.rowsPerFrame = 4096;
 SSA.endDepthMM = 150;
 SSA.startDepthMM = [];
-SSA.nFrames = 1000;         % WARNING: value overridden in turntable mode
+SSA.nFrames = 1000+1;         % WARNING: value overridden in turntable mode
 SSA.frameBuffer = 550;      % extra frames to pad turntable acquisition
 
 % STEERED:
@@ -75,10 +75,10 @@ SA.rowsPerFrame = SA.nRay*4096;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 PHASED_B.nRay = 128;
 PHASED_B.rowsPerFrame = PHASED_B.nRay*4096;
-PHASED_B.PRF = 23;          % pulse repetition frequency [hz]
+PHASED_B.PRF = 25;          % pulse repetition frequency [hz]
 PHASED_B.focusMM = 100;
 PHASED_B.endDepthMM = 150;  
-PHASED_B.tPulse = 250;      % time between phased tx [us]
+PHASED_B.tPulse = 300;      % time between phased tx [us]
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Planewave B-mode parameters %
@@ -168,12 +168,14 @@ if SETUP.rs232Toggle ~= 1, disp('Serial communication: OFF')
 else warning('Serial communication: ON'), end
 
 % DEFINE TRANSDUCER
-freqMHz = 3; % changed from 2.5
+freqMHz = 3.0; % changed from 2.5
 Trans.name = 'P4-2';
 Trans.frequency = freqMHz;          % not needed if using default f0
 % Trans.units = 'mm'; 
 Trans.units = 'wavelengths'; 
 Trans = computeTrans(Trans);
+Trans.lensCorrection=Trans.lensCorrection*Trans.frequency/(2.5*2.5); 
+% lens correction value given by versonics may be incorrect (additional factor of 2.5 added)
 Trans.maxHighVoltage = maxVoltage;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -282,8 +284,8 @@ Resource.RcvBuffer(4).numFrames = saSaveFrames;
 
 % TRANSMIT WAVEFORM DEFINITION (USED FOR ALL IMAGING MODES)
 TW.type = 'parametric';
-% TW.Parameters = [Trans.frequency,.67,2,1]; % *** changed from original code ***
-TW.Parameters = [Trans.frequency,1,2,1];
+TW.Parameters = [Trans.frequency,.67,2,1]; % *** changed from original code ***
+% TW.Parameters = [Trans.frequency,1,2,1];
 
 % NOTE:
 % A,B,C,D in terms of master clock (180 MHz T = 5.556 ns)
