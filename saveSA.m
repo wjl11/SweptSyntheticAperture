@@ -10,6 +10,7 @@ TW = evalin('base', 'TW');
 TX = evalin('base', 'TX');
 txFocus = evalin('base', 'SA.txFocus');
 rcv_i = evalin('base','saRcvStart');
+tx_i = evalin('base','saTxStart');
 
 persistent nframeSA
 if isempty(nframeSA); nframeSA = 1; end
@@ -36,7 +37,7 @@ rfdata.frequencyMHz = Trans.frequency;
 rfdata.focusMM = txFocus*c/(Trans.frequency*1e6);
 rfdata.timeZero = -(SFormat(1).startDepth+...
                 TW(1).peak+...
-                min(TX(end).Delay))*Receive(rcv_i+1).samplesPerWave;
+                min(TX(tx_i+nr).Delay))*Receive(rcv_i+1).samplesPerWave;
 
 if strcmpi(label,'db') || strcmpi(label,'')
     disp('[DEBUG MODE] No file saved.')
