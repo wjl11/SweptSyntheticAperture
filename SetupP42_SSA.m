@@ -184,7 +184,7 @@ Trans.maxHighVoltage = maxVoltage;
 aperture = numEl*Trans.spacing;
 SFormat(1).transducer = 'P4-2';
 SFormat(1).scanFormat = 'VAPX'; 
-SFormat(1).theta = -pi/8;
+SFormat(1).theta = -pi/4; % changed from -pi/8
 SFormat(1).radius = (aperture/2)/tan(-SFormat(1).theta);                            % distance to virtual apex
 SFormat(1).numRays = PHASED_B.nRay;
 SFormat(1).FirstRayLoc = Trans.ElementPos(1,1:3);                                   % x,y,z
@@ -282,7 +282,7 @@ Resource.RcvBuffer(4).numFrames = saSaveFrames;
 
 % TRANSMIT WAVEFORM DEFINITION (USED FOR ALL IMAGING MODES)
 TW.type = 'parametric';
-% TW.Parameters = [Trans.frequency,.67,2,1]; % *** original code ***
+% TW.Parameters = [Trans.frequency,.67,2,1]; % *** changed from original code ***
 TW.Parameters = [Trans.frequency,1,2,1];
 
 % NOTE:
