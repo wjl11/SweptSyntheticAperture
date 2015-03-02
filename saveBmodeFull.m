@@ -8,6 +8,7 @@ Trans = evalin('base', 'Trans');
 Receive = evalin('base', 'Receive');
 txFocus = evalin('base', 'PHASED_B.focusMM');
 rcv_i = evalin('base','paGuideRcvStart');
+tx_i = evalin('base','paTxStart')+1;
 
 persistent nframeBmode
 if isempty(nframeBmode); nframeBmode = 0; end
@@ -39,14 +40,14 @@ rfdata.samplingRateMHz = Trans.frequency*Receive(1).samplesPerWave;
 rfdata.frequencyMHz = Trans.frequency;
 rfdata.timeZero = -(SFormat(1).startDepth+...
                     Trans.lensCorrection*2+...
-                    TW(1).peak)*Receive(1).samplesPerWave;
+                    TW(1).peak)*Receive(rcv_i).samplesPerWave;
 rfdata.focus = txFocus*lambda;
 rfdata.theta=SFormat(1).theta+(0:nr-1)*SFormat(1).rayDelta;
 rfdata.vs=-SFormat.radius*lambda;
 %Correct time zero for each event to the last (closest) element fired
 rfdata.t0_var=zeros(1,128);
 for i=1:nr
-    rfdata.t0_var(i)=max(TX(i).Delay)*lambda;
+    rfdata.t0_var(i)=max(TX(tx_i+i).Delay)*lambda;
 end
 
 if strcmpi(label,'db') || strcmpi(label,'')

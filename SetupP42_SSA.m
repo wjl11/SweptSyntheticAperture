@@ -1,5 +1,5 @@
 % ***** P4-2 Swept Synthetic Aperture Image Acquisition Routine *****
-% Version 12.4 (debug in progress)
+% Version 12.5 (debugged)
 %
 % Overhaul from original version 10.1 framework 
 %     Git SHA v10.1: c26a26bf91c412d7f06841dca3f03c2e8a702fe9 (working)
@@ -9,12 +9,13 @@
 %     Git SHA v12.4: 45b02aea59d05754a60e41e0eeed760918c62fe3 (working)
 %
 %
-% Latest revision 03/01/15 (debugging in process) 
-% -Debug SA acquisition routine (time zero)
-% -Optimize save routine using fwritef
+% Latest revision 03/01/15 - by Will Long
+% -Lens correction implemented
+% -New saved parameters added
+% -Dataset acquired and verified
+% -SSA frame number adjusted to not include 1st blank frame
 %
-%
-% Revision 12 02/17/15 (debugging in progress) - by Will Long
+% Revision 12 02/17/15 - by Will Long
 % -Modifications to improve code readibility 
 % -Revisions to reduce redundancy of turn table rs232 communication
 % -Implementation of manual routine
@@ -51,7 +52,7 @@ SSA.PRT = 1e3;              % time between SSA acquisitions [us]
 SSA.rowsPerFrame = 4096;
 SSA.endDepthMM = 150;
 SSA.startDepthMM = [];
-SSA.nFrames = 1000+1;         % WARNING: value overridden in turntable mode
+SSA.nFrames = 1000;         % WARNING: value overridden in turntable mode
 SSA.frameBuffer = 550;      % extra frames to pad turntable acquisition
 
 % STEERED:
@@ -115,7 +116,7 @@ end
 
 switch SETUP.scanType
     case 'manual'
-
+        SSA.nFrames = SSA.nFrames+1;
     case 'turntable'
         SSA.nFrames = ...
             round(((TABLE.sweep_range(2)-TABLE.sweep_range(1))/360.0)...
@@ -124,7 +125,7 @@ end
 
 % CONSOLE OUTPUTS
 disp(['Plane wave SA frame rate: ' num2str(1/(SSA.PRT*1e-3)) ' kHz']);
-disp(['SSA frames per acquisition: ' num2str(SSA.nFrames)])
+disp(['SSA frames per acquisition: ' num2str(SSA.nFrames-1)])
 % disp(['Fundamental frame rate: ' num2str(1/(SSA.endDepthMM*2/c)) ' kHz']);
 
 % DATA LABEL
