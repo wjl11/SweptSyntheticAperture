@@ -42,7 +42,7 @@ SETUP.scanType = input('Scan type [manual/turntable]: ','s');
 %%%%%%%%%%%%%%%%%%%%%%
 maxVoltage = 50;            % max voltage used for transmit
 numEl = 64;                 % number of physical elements (1/2 tot channel)
-c = 1540;                   % speed of sound
+c = 1452;                   % speed of sound (changed from 1540)
 
 %%%%%%%%%%%%%%%%%%
 % SSA Parameters %
@@ -184,7 +184,7 @@ Trans.maxHighVoltage = maxVoltage;
 aperture = numEl*Trans.spacing;
 SFormat(1).transducer = 'P4-2';
 SFormat(1).scanFormat = 'VAPX'; 
-SFormat(1).theta = -pi/4; % changed from -pi/8
+SFormat(1).theta = -pi/8; 
 SFormat(1).radius = (aperture/2)/tan(-SFormat(1).theta);                            % distance to virtual apex
 SFormat(1).numRays = PHASED_B.nRay;
 SFormat(1).FirstRayLoc = Trans.ElementPos(1,1:3);                                   % x,y,z
