@@ -157,7 +157,7 @@ Media.function = 'movePoints';
 
 % SYSTEM PARAMETERS
 Resource.Parameters.numTransmit = 128;
-Resource.Parameters.numRcvChannels = 256;       % 256 for Vantage system
+Resource.Parameters.numRcvChannels = 128;       % changed from 256 (256 for vantage system)
 Resource.Parameters.speedOfSound = c;
 Resource.Parameters.simulateMode = SETUP.simToggle;
 
@@ -168,7 +168,7 @@ if SETUP.rs232Toggle ~= 1, disp('Serial communication: OFF')
 else warning('Serial communication: ON'), end
 
 % DEFINE TRANSDUCER
-freqMHz = 2.50;
+freqMHz = 3; % changed from 2.5
 Trans.name = 'P4-2';
 Trans.frequency = freqMHz;          % not needed if using default f0
 % Trans.units = 'mm'; 
@@ -282,7 +282,8 @@ Resource.RcvBuffer(4).numFrames = saSaveFrames;
 
 % TRANSMIT WAVEFORM DEFINITION (USED FOR ALL IMAGING MODES)
 TW.type = 'parametric';
-TW.Parameters = [Trans.frequency,.67,2,1]; % *** different from NB code ***
+% TW.Parameters = [Trans.frequency,.67,2,1]; % *** original code ***
+TW.Parameters = [Trans.frequency,1,2,1];
 
 % NOTE:
 % A,B,C,D in terms of master clock (180 MHz T = 5.556 ns)
