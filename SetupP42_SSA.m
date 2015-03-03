@@ -541,23 +541,14 @@ Process(p_i).Parameters = {'imgbufnum',2,...   % number of buffer to process.
                          'display',1,...     % display image after processing
                          'displayWindow',1};
 p_i = p_i+1;
- 
-% SAVE B-MODE FRAMES (EXTERNAL)
-pIdx.saveBmode = p_i;
-Process(p_i).classname = 'External';
-Process(p_i).method = 'saveBmode';
-Process(p_i).Parameters = {'srcbuffer','receive',...
-    'srcbufnum',3,...
-    'srcframenum',0,... 
-    'dstbuffer','none'};
-p_i = p_i+1;
+
 % NOTE: RData sent to external function determined by srcframenum
 % 0 [all frames], -1 [last frame]
 
-% SAVE B-MODE FRAMES AND IMAGE (EXTERNAL)
-pIdx.saveBmodeFull = p_i;
+% SAVE PA FRAMES AND IMAGE (EXTERNAL)
+pIdx.savePA = p_i;
 Process(p_i).classname = 'External';
-Process(p_i).method = 'saveBmodeFull';
+Process(p_i).method = 'savePA';
 Process(p_i).Parameters = {'srcbuffer','receive',...
     'srcbufnum',3,...
     'srcframenum',0,... 
@@ -812,7 +803,7 @@ Event(n).info = 'Save full B-mode data (RF and image)';
 Event(n).tx = 0; 
 Event(n).rcv = 0; 
 Event(n).recon = 0; 
-Event(n).process = pIdx.saveBmodeFull; 
+Event(n).process = pIdx.savePA; 
 Event(n).seqControl = nsc;
     SeqControl(nsc).command = 'returnToMatlab';
     nsc = nsc+1;
@@ -1018,12 +1009,12 @@ n = n+1;
 %************************ GUI elements ************************************
 ui = 1;
 
-UI(ui).Control = {'UserB3','Style','VsPushButton','Tag','pwImage','Label','Toggle B-mode'};
+UI(ui).Control = {'UserB3','Style','VsPushButton','Tag','pwImage','Label','Toggle Display'};
 UI(ui).Callback = text2cell('%CB_imagingToggle');
 ui = ui+1;
 
-UI(ui).Control = {'UserB2','Style','VsPushButton','Tag','saveBmodeFull','Label','B-mode'};
-UI(ui).Callback = text2cell('%CB_saveBmodeFull');
+UI(ui).Control = {'UserB2','Style','VsPushButton','Tag','savePA','Label','PA'};
+UI(ui).Callback = text2cell('%CB_savePA');
 ui = ui+1;
 
 UI(ui).Control = {'UserB1','Style','VsPushButton','Tag','saveSA','Label','SA'}; % change UI location
@@ -1079,10 +1070,10 @@ init_steerSSA(hObject,eventdata)
 return
 %CB_steerSSA
 
-%CB_saveBmodeFull
-init_saveBmodeFull(hObject,eventdata)
+%CB_savePA
+init_savePA(hObject,eventdata)
 return
-%CB_saveBmodeFull
+%CB_savePA
 
 %CB_saveSA
 init_saveSA(hObject,eventdata)
