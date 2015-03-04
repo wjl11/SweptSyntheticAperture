@@ -37,6 +37,7 @@ SETUP.rs232Toggle = 1;          % 1 [table com on], 0 [table com off]
 SETUP.scanType = input('Scan type [manual/turntable]: ','s');   
                                 % 'manual' [manual scanning]
                                 % 'turntable' [turn table scanning]
+SETUP.timeout = 15000;          % time to wait for manual rotation [ms]
                             
 %%%%%%%%%%%%%%%%%%%%%%
 % General Parameters %
@@ -172,7 +173,6 @@ else warning('Serial communication: ON'), end
 freqMHz = 3.0; % changed from 2.5
 Trans.name = 'P4-2';
 Trans.frequency = freqMHz;          % not needed if using default f0
-% Trans.units = 'mm'; 
 Trans.units = 'wavelengths'; 
 Trans = computeTrans(Trans);
 Trans.lensCorrection=Trans.lensCorrection*Trans.frequency/(2.5*2.5); 
@@ -278,6 +278,8 @@ Resource.RcvBuffer(4).datatype = 'int16';
 Resource.RcvBuffer(4).rowsPerFrame = SA.rowsPerFrame; 
 Resource.RcvBuffer(4).colsPerFrame = Resource.Parameters.numRcvChannels;
 Resource.RcvBuffer(4).numFrames = saSaveFrames;
+
+Resource.VDAS.dmaTimeout = SETUP.timeout;
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % Transmit Structures %
@@ -636,6 +638,12 @@ SeqControl(nsc).command = 'noop';
 SeqControl(nsc).argument = 524287;
 nsc = nsc+1;
 
+% WAIT TIME FOR DELAYING SEQUENCE
+scIdx.waitNOOPshort = nsc; 
+SeqControl(nsc).command = 'noop';
+SeqControl(nsc).argument = 250000;
+nsc = nsc+1;
+
 % OUTPUT TRIGGER 
 scIdx.triggerOut = nsc; 
 SeqControl(nsc).command = 'triggerOut';
@@ -651,6 +659,13 @@ nsc = nsc+1;
 scIdx.delayFrameSA = nsc; 
 SeqControl(nsc).command = 'timeToNextAcq'; 
 SeqControl(nsc).argument = round(1/SA.PRF*1e6 - 64*PHASED_B.tPulse);
+nsc = nsc+1;
+
+% TRIGGER IN WAIT
+scIdx.waitTriggerIn = nsc;
+SeqControl(nsc).command = 'pause'; 
+SeqControl(nsc).condition = 'extTrigger';
+SeqControl(nsc).argument = 17;          %Input 1 (proceeds on rising edge)
 nsc = nsc+1;
 
 % ****************** GUIDANCE PHASED ARRAY BMODE EVENTS *******************
@@ -843,7 +858,22 @@ for ic = 1:2
 
     switch SETUP.scanType
         case 'manual'
-
+            Event(n).info = 'Wait for rotation';
+            Event(n).tx = 0;         
+            Event(n).rcv = 0;       
+            Event(n).recon = 0;      
+            Event(n).process = 0;
+            Event(n).seqControl = scIdx.waitTriggerIn;
+            n = n+1;
+            
+            Event(n).info = 'Wait for beaglebone';
+            Event(n).tx = 0;         
+            Event(n).rcv = 0;       
+            Event(n).recon = 0;      
+            Event(n).process = 0;
+            Event(n).seqControl = scIdx.waitNOOPshort;
+            n = n+1;
+            
         case 'turntable'
             Event(n).info = 'Trigger probe sweep';
             Event(n).tx = 0;         
@@ -854,10 +884,10 @@ for ic = 1:2
                 SeqControl(nsc).command = 'returnToMatlab';
                 nsc = nsc+1;
             n = n+1;
+            
+            [Event,n] = genWaitEvents(Event,n,scIdx.waitNOOP,3);
     end
-
-    [Event,n] = genWaitEvents(Event,n,scIdx.waitNOOP,3);
-
+    
 %   CASE SPECIFIC PARAMETERS [EDIT]
     if ic == 1,         
         SSA_loop = n;

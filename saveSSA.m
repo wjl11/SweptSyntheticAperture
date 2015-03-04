@@ -7,7 +7,7 @@ Resource = evalin('base', 'Resource');
 SFormat = evalin('base', 'SFormat');
 TW = evalin('base', 'TW');
 TX = evalin('base', 'TX');
-txFocus = evalin('base', 'SSA.txFocus');
+txFocus = evalin('base', 'SSA.focusMM');
 rcv_i = evalin('base','ssaRcvStart')+1;
 tx_i = evalin('base','pwTxStart')+1;
 

@@ -6,6 +6,10 @@ angles = evalin('base','bmodeAngles');
 origin = evalin('base','origin');
 Trans = evalin('base', 'Trans');
 Receive = evalin('base', 'Receive');
+Resource = evalin('base', 'Resource');
+SFormat = evalin('base', 'SFormat');
+TW = evalin('base', 'TW');
+TX = evalin('base', 'TX');
 txFocus = evalin('base', 'PHASED_B.focusMM');
 rcv_i = evalin('base','paGuideRcvStart')+1;
 tx_i = evalin('base','paTxStart')+1;
@@ -43,7 +47,7 @@ rfdata.timeZero = -(SFormat(1).startDepth+...
                     TW(1).peak)*Receive(rcv_i).samplesPerWave;
 rfdata.focus = txFocus*lambda;
 rfdata.theta=SFormat(1).theta+(0:nr-1)*SFormat(1).rayDelta;
-rfdata.vs=-SFormat.radius*lambda;
+rfdata.vs=-SFormat(1).radius*lambda;
 %Correct time zero for each event to the last (closest) element fired
 rfdata.t0_var=zeros(1,128);
 for i=1:nr
