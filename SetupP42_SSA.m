@@ -44,7 +44,7 @@ SETUP.timeout = 15000;          % time to wait for manual rotation [ms]
 %%%%%%%%%%%%%%%%%%%%%%
 maxVoltage = 50;            % max voltage used for transmit
 numEl = 64;                 % number of physical elements (1/2 tot channel)
-c = 1460;                   % speed of sound (changed from 1540)
+c = 1480;                   % speed of sound (changed from 1540)
 
 %%%%%%%%%%%%%%%%%%
 % SSA Parameters %
@@ -53,7 +53,7 @@ SSA.PRT = 1e3;              % time between SSA acquisitions [us]
 SSA.rowsPerFrame = 4096;
 SSA.endDepthMM = 150;
 SSA.startDepthMM = [];
-SSA.nFrames = 1000;         % WARNING: value overridden in turntable mode
+SSA.nFrames = 2000;         % WARNING: value overridden in turntable mode
 SSA.frameBuffer = 550;      % extra frames to pad turntable acquisition
 
 % STEERED:
