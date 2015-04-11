@@ -1,17 +1,27 @@
 % ***** P4-2 Swept Synthetic Aperture Image Acquisition Routine *****
-% Version 12.5 (debugged)
+% Version 13.0 (working)
 %
 % Overhaul from original version 10.1 framework 
 %     Git SHA v10.1: c26a26bf91c412d7f06841dca3f03c2e8a702fe9 (working)
 %     Git SHA v11: d3349b3c815baa076c7b8e26f63e52a84b85e509 
 %
-% SA overhaul from version 12.4
+% SA implementation from version 12.4
 %     Git SHA v12.4: 45b02aea59d05754a60e41e0eeed760918c62fe3 (working)
 %
+% Code for week of 03/09/15 acquisitions 12.5
+%     Saved in USB flash drive (working) * NOT IN REPO
 %
-% Latest revision 03/01/15 - by Will Long
+% Merged master and focused_tx_testing branch
+% 
+% Latest revision 13.0 03/12/15 - by Will Long
+% -Diverging wave Tx (SSA.numEl option with fixed F/-0.75 virtual source)
+% -PW Tx replaced with 2 element Tx
+% -Save routine options added (options to save or scrap data after SSA acquisition)
+% -SSA focus parameter properly assigned
+% 
+% Revision 12.5 03/01/15 - by Will Long
 % -Lens correction implemented
-% -New saved parameters added
+% -New saved parameters added (including t0 etc)
 % -Dataset acquired and verified
 % -SSA frame number adjusted to not include 1st blank frame
 %
@@ -34,7 +44,7 @@ clear all
 %%%%%%%%%%%%%%%%%%%%%%
 SETUP.simToggle = 0;            % 1 [simulation], 0 [probe connected]
 SETUP.rs232Toggle = 1;          % 1 [table com on], 0 [table com off]
-SETUP.scanType = input('Scan type [manual/turntable]: ','s');   
+SETUP.scanType = 'manual';   
                                 % 'manual' [manual scanning]
                                 % 'turntable' [turn table scanning]
 SETUP.timeout = 15000;          % time to wait for manual rotation [ms]
@@ -44,7 +54,7 @@ SETUP.timeout = 15000;          % time to wait for manual rotation [ms]
 %%%%%%%%%%%%%%%%%%%%%%
 maxVoltage = 50;            % max voltage used for transmit
 numEl = 64;                 % number of physical elements (1/2 tot channel)
-c = 1480;                   % speed of sound (changed from 1540)
+c = 1540;                   % speed of sound (changed from 1540)
 
 %%%%%%%%%%%%%%%%%%
 % SSA Parameters %
@@ -53,15 +63,17 @@ SSA.PRT = 1e3;              % time between SSA acquisitions [us]
 SSA.rowsPerFrame = 4096;
 SSA.endDepthMM = 150;
 SSA.startDepthMM = [];
-SSA.nFrames = 2000;         % WARNING: value overridden in turntable mode
+SSA.nFrames = 1000;         % WARNING: value overridden in turntable mode
 SSA.frameBuffer = 550;      % extra frames to pad turntable acquisition
 
 % STEERED:
 SSA.pwAngles = -10:10:10;
 SSA.nAngles = length(SSA.pwAngles);
 
-% FOCUSED:
-SSA.focusMM = 90;           % (not implemented in version 11)
+% DIVERING:
+SSA.txFnum = -0.75;
+SSA.txFocus = 0; 
+SSA.numEl = 64; 
 
 %%%%%%%%%%%%%%%%%
 % SA Parameters %
@@ -299,7 +311,7 @@ TW.Parameters = [Trans.frequency,.67,2,1]; % *** changed from original code ***
 % **TW(1).Parameters = [36,17,2,1];   % A, B, C, D [old definition of TW]
 
 % TRANSMIT STRUCTURE DEFINITION
-numTxDef = PHASED_B.nRay+1+SSA.nAngles+SA.nRay;
+numTxDef = PHASED_B.nRay+1+SSA.nAngles+SA.nRay+1;
 TX = repmat(struct('waveform', 1, ...
                    'Origin', [0,0,0], ...
                    'focus', 0, ... % in wavelengths; 
@@ -329,6 +341,9 @@ end
 % - single tx stuct defined
 pwTxStart = tx_i;
 tx_i = tx_i+1;
+
+TX(tx_i).Apod(:) = 0; % diverging wave edit
+TX(tx_i).Apod(round(numEl/2):round(numEl/2)+1) = 1; % diverging wave edit
 TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 
 % STEERED PW SSA TX 
@@ -351,6 +366,17 @@ for n = 1:SA.nRay
     TX(tx_i).Apod(n:n+SA.numEl-1) = 1.0;
     TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 end
+
+% DIVERGING TX 
+sDivTxStart = tx_i;
+SSA.txFocus = SSA.txFnum*SSA.numEl*Trans.spacing;
+tx_i = tx_i+1;
+TX(tx_i).Origin = [0.0,0.0,0.0];
+TX(tx_i).Apod(:) = 0;
+TX(tx_i).Apod((round(numEl/2)-round(SSA.numEl/2)+1):...
+    (round(numEl/2)+round(SSA.numEl/2))) = 1.0;
+TX(tx_i).focus = SSA.txFocus;
+TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 
 % TRANSMIT POWER CONTROLLER 
 TPC(1).name = 'B-mode';
@@ -838,14 +864,17 @@ n = n+1;
 %************************ SSA ACQUISITION EVENTS **************************
 % IMAGING CASE 1: PLANEWAVE SSA
 % IMAGING CASE 2: STEERED PLANEWAVE SSA
+% IMAGING CASE 3: DIVERGING WAVE SSA
 
-for ic = 1:2
+for ic = 1:3
     
 %   CASE SPECIFIC PARAMETERS [EDIT]
     if ic == 1,             
         SSA_acq = n;
     elseif ic == 2,         
         steerSSA_acq = n;
+    elseif ic == 3
+        divSSA_acq = n;
     end
 
     Event(n).info = 'Switch to SA acquire';
@@ -858,21 +887,26 @@ for ic = 1:2
 
     switch SETUP.scanType
         case 'manual'
-            Event(n).info = 'Wait for rotation';
-            Event(n).tx = 0;         
-            Event(n).rcv = 0;       
-            Event(n).recon = 0;      
-            Event(n).process = 0;
-            Event(n).seqControl = scIdx.waitTriggerIn;
-            n = n+1;
+            if strcmpi(saveLabel,'db') || strcmpi(saveLabel,'')
+                disp('Ignore Beaglebone trigger.')
+            else
+                Event(n).info = 'Wait for rotation';
+                Event(n).tx = 0;         
+                Event(n).rcv = 0;       
+                Event(n).recon = 0;      
+                Event(n).process = 0;
+                Event(n).seqControl = scIdx.waitTriggerIn;
+                n = n+1;
+            end
             
-            Event(n).info = 'Wait for beaglebone';
-            Event(n).tx = 0;         
-            Event(n).rcv = 0;       
-            Event(n).recon = 0;      
-            Event(n).process = 0;
-            Event(n).seqControl = scIdx.waitNOOPshort;
-            n = n+1;
+                Event(n).info = 'Wait for beaglebone';
+                Event(n).tx = 0;         
+                Event(n).rcv = 0;       
+                Event(n).recon = 0;      
+                Event(n).process = 0;
+                Event(n).seqControl = scIdx.waitNOOPshort;
+                n = n+1;
+
             
         case 'turntable'
             Event(n).info = 'Trigger probe sweep';
@@ -895,6 +929,8 @@ for ic = 1:2
         steerSSA_loop = n;
         j=1;
         steerAngles = zeros(1,Resource.RcvBuffer(2).numFrames);
+    elseif ic == 3,
+        divSSA_loop = n;
     end
     
     for i = 1:Resource.RcvBuffer(2).numFrames
@@ -911,28 +947,24 @@ for ic = 1:2
             if ic == 1
                 Event(n).info = 'Acquire planewave SSA RF';
                 Event(n).tx = pwTxStart+1;
-                Event(n).rcv = i+ssaRcvStart; 
-                Event(n).recon = 0; 
-                Event(n).process = 0; 
-                Event(n).seqControl = [scIdx.delayFrameSSA,nsc]; 
-                    SeqControl(nsc).command = 'transferToHost';
-                    nsc = nsc+1;
-                n = n+1;
             elseif ic == 2
                 Event(n).info = 'Acquire steered planewave SSA RF';
                 Event(n).tx = spwTxStart+j;
-                Event(n).rcv = i+ssaRcvStart; 
-                Event(n).recon = 0; 
-                Event(n).process = 0; 
-                Event(n).seqControl = [scIdx.delayFrameSSA,nsc]; 
-                    SeqControl(nsc).command = 'transferToHost';
-                    nsc = nsc+1;
-                n = n+1;
 
                 steerAngles(i-1) = SSA.pwAngles(j); 
                 j = j+1;
                 if j > SSA.nAngles; j = 1; end
+            elseif ic == 3
+                Event(n).info = 'Acquire diverging SSA RF';
+                Event(n).tx = sDivTxStart+1;
             end
+            Event(n).rcv = i+ssaRcvStart; 
+            Event(n).recon = 0; 
+            Event(n).process = 0; 
+            Event(n).seqControl = [scIdx.delayFrameSSA,nsc]; 
+                SeqControl(nsc).command = 'transferToHost';
+                nsc = nsc+1;
+            n = n+1;
         end
     end
 
@@ -1053,12 +1085,12 @@ ui = ui+1;
 
 switch SETUP.scanType
     case 'manual'
-        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','pwSSA','Label','pw SSA'};
+        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','pwSSA','Label','div (2)'};
         UI(ui).Callback = text2cell('%CB_pwSSA');
         ui = ui+1;
 
-        UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','steerSSA','Label','steer SSA'};
-        UI(ui).Callback = text2cell('%CB_steerSSA');
+        UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','divSSA','Label',['div (' num2str(SSA.numEl) ')']};
+        UI(ui).Callback = text2cell('%CB_divSSA');
         ui = ui+1;
         
     case 'turntable'
@@ -1066,8 +1098,8 @@ switch SETUP.scanType
         UI(ui).Callback = text2cell('%CBtable_pwSSA');
         ui = ui+1;
 
-        UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','steerSSA','Label','steer SSA'};
-        UI(ui).Callback = text2cell('%CBtable_steerSSA');
+        UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','divSSA','Label','div SSA'};
+        UI(ui).Callback = text2cell('%CBtable_divSSA');
         ui = ui+1;
 
         UI(ui).Control = {'UserB6','Style','VsPushButton','Tag','testSweep','Label','Test Sweep'};
@@ -1100,6 +1132,11 @@ init_steerSSA(hObject,eventdata)
 return
 %CB_steerSSA
 
+%CB_divSSA
+init_divSSA(hObject,eventdata)
+return
+%CB_divSSA
+
 %CB_savePA
 init_savePA(hObject,eventdata)
 return
@@ -1126,6 +1163,12 @@ table_initRS232
 init_pwSSA(hObject,eventdata)
 return
 %CBtable_pwSSA
+
+%CBtable_divSSA
+table_initRS232
+init_divSSA(hObject,eventdata)
+return
+%CBtable_divSSA
 
 %CB_testSweep
 table_initRS232

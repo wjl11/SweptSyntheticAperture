@@ -7,7 +7,7 @@ Resource = evalin('base', 'Resource');
 SFormat = evalin('base', 'SFormat');
 TW = evalin('base', 'TW');
 TX = evalin('base', 'TX');
-txFocus = evalin('base', 'SSA.focusMM');
+txFocus = evalin('base', 'SSA.txFocus');
 rcv_i = evalin('base','ssaRcvStart')+1;
 tx_i = evalin('base','pwTxStart')+1;
 
@@ -19,7 +19,6 @@ SSA_TYPE = evalin('base','SSA_TYPE');
 
 if strcmpi(SSA_TYPE,'steer_pw'); tx_i = evalin('base','spwTxStart')+1;
 end
-
 
 persistent nframeSSA
 if isempty(nframeSSA); nframeSSA = 0;end
@@ -52,10 +51,16 @@ end
 if strcmpi(label,'db') || strcmpi(label,'')
     disp('[DEBUG MODE] No file saved.')
 else
-    disp(['Saving SA data to ' path '.mat']);
-    save([path '.mat'],'rf','rfdata','-v7.3');
-    disp(['SA data saved to ' path '.mat']);
+    saveOpt = input('Save SSA data [y/n]? ','s')
+    if strcmpi(saveOpt,'y')
+        disp(['Saving SSA data to ' path '.mat']);
+        save([path '.mat'],'rf','rfdata','-v7.3');
+        disp(['SSA data saved to ' path '.mat']);
+    else
+        disp('SSA data not saved.');
+    end
 end
+
 nframeSSA = nframeSSA+1;
 
 IM_STATE = 'pa';
