@@ -8,10 +8,7 @@
 % SA implementation from version 12.4
 %     Git SHA v12.4: 45b02aea59d05754a60e41e0eeed760918c62fe3 (working)
 %
-% Code for week of 03/09/15 acquisitions 12.5
-%     Saved in USB flash drive (working) * NOT IN REPO
-%
-% Merged master and focused_tx_testing branch
+% Merged master and focused_tx_testing branch with version 13.0 (working) 04/11/15
 % 
 % Latest revision 13.0 03/12/15 - by Will Long
 % -Diverging wave Tx (SSA.numEl option with fixed F/-0.75 virtual source)
