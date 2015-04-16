@@ -78,7 +78,10 @@ divSSA.numEl = 12;
 % FOCUSED:
 focSSA.focusMM = 30;        % tx focus [mm] 
 focSSA.numEl = numEl;       % use all elements
+<<<<<<< HEAD
 focSSA.txFnum = focSSA.focusMM/(focSSA.numEl*Trans.spacingMm); % F/# = z/D
+=======
+>>>>>>> 93a3a889301e6421d6623df166dc935180fd2583
 
 %%%%%%%%%%%%%%%%%
 % SA Parameters %
@@ -316,7 +319,7 @@ TW.Parameters = [Trans.frequency,.67,2,1]; % *** changed from original code ***
 % **TW(1).Parameters = [36,17,2,1];   % A, B, C, D [old definition of TW]
 
 % TRANSMIT STRUCTURE DEFINITION
-numTxDef = PHASED_B.nRay+1+SSA.nAngles+SA.nRay+1;
+numTxDef = PHASED_B.nRay+1+SSA.nAngles+SA.nRay+1+1;
 TX = repmat(struct('waveform', 1, ...
                    'Origin', [0,0,0], ...
                    'focus', 0, ... % in wavelengths; 
@@ -390,6 +393,7 @@ TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 % FOCUSED TX 
 sFocTxStart = tx_i;
 focSSA.txFocus = round(focSSA.focusMM/1000/(c/(Trans.frequency*1e6)));
+focSSA.txFnum = focSSA.focusMM/(focSSA.numEl*Trans.spacing); % F/# = z/D
 % focSSA.txFnum*divSSA.numEl*Trans.spacing;
 tx_i = tx_i+1;
 TX(tx_i).Origin = [0.0,0.0,0.0];
@@ -1126,7 +1130,7 @@ switch SETUP.scanType
         UI(ui).Callback = text2cell('%CB_divSSA');
         ui = ui+1;
         
-        UI(ui).Control = {'UserC3','Style','VsPushButton','Tag','focSSA','Label',['focus (' num2str(focSSA.txFocusMM) ')']};
+        UI(ui).Control = {'UserC3','Style','VsPushButton','Tag','focSSA','Label',['focus (' num2str(focSSA.focusMM/10) 'cm)']};
         UI(ui).Callback = text2cell('%CB_focSSA');
         ui = ui+1;
         

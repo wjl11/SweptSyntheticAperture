@@ -28,7 +28,7 @@ switch SSA_TYPE
         tx_i = evalin('base','sDivTxStart')+1;
         txFocus = evalin('base', 'divSSA.txFocus');
         rfdata.numElementsPerXmt = evalin('base', 'divSSA.numEl');
-    case 'focus'
+    case 'foc'
         tx_i = evalin('base','sFocTxStart')+1;
         txFocus = evalin('base', 'focSSA.txFocus');
         rfdata.numElementsPerXmt = evalin('base', 'focSSA.numEl');
@@ -44,7 +44,6 @@ path = [dir name];
 rf = RData(:,[1:32 97:128],2:end);
 rfdata.c = c;
 rfdata.numRcvChannels = 64;
-% rfdata.numElementsPerXmt= 64;
 rfdata.numFrames = Resource.RcvBuffer(2).numFrames;
 rfdata.numXmtRxEvents = rfdata.numFrames;
 rfdata.elementSpacingMM = Trans.spacingMm;
@@ -58,7 +57,6 @@ rfdata.timeZero = -(SFormat(2).startDepth+...
                 min(TX(tx_i).Delay))*Receive(rcv_i).samplesPerWave;
 rfdata.focus = txFocus*c/(Trans.frequency*1e6);
 rfdata.type = SSA_TYPE;
-
 
 if strcmpi(label,'db') || strcmpi(label,'')
     disp('[DEBUG MODE] No file saved.')
