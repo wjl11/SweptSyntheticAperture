@@ -78,7 +78,7 @@ divSSA.numEl = 12;
 % FOCUSED:
 focSSA.focusMM = 30;        % tx focus [mm] 
 focSSA.numEl = numEl;       % use all elements
-focSSA.txFnum = focSSA.focusMM/(focSSA.numEl*Trans.spacing); % F/# = z/D
+focSSA.txFnum = focSSA.focusMM/(focSSA.numEl*Trans.spacingMm); % F/# = z/D
 
 %%%%%%%%%%%%%%%%%
 % SA Parameters %
@@ -362,7 +362,7 @@ end
 
 % FULL SA TX 
 saTxStart = tx_i;
-SA.focusMM = SA.txFnum*SA.numEl*Trans.spacing;
+SA.focusMM = SA.txFnum*SA.numEl*Trans.spacingMm;
 SA.txFocus = round(SA.focusMM/1000/(c/(Trans.frequency*1e6)));
 for n = 1:SA.nRay
     tx_i = tx_i+1;
@@ -375,8 +375,9 @@ end
 
 % DIVERGING TX 
 sDivTxStart = tx_i;
-divSSA.focusMM = divSSA.txFnum*divSSA.numEl*Trans.spacing;
-divSSA.txFocus = round(divSSA.focusMM/1000/(c/(Trans.frequency*1e6)));
+% divSSA.focusMM = divSSA.txFnum*divSSA.numEl*Trans.spacingMm;
+divSSA.txFocus = divSSA.txFnum*divSSA.numEl*Trans.spacing;
+% ing;round(divSSA.focusMM/1000/(c/(Trans.frequency*1e6)));
 
 tx_i = tx_i+1;
 TX(tx_i).Origin = [0.0,0.0,0.0];
