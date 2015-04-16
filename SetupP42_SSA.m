@@ -78,10 +78,6 @@ divSSA.numEl = 12;
 % FOCUSED:
 focSSA.focusMM = 30;        % tx focus [mm] 
 focSSA.numEl = numEl;       % use all elements
-<<<<<<< HEAD
-focSSA.txFnum = focSSA.focusMM/(focSSA.numEl*Trans.spacingMm); % F/# = z/D
-=======
->>>>>>> 93a3a889301e6421d6623df166dc935180fd2583
 
 %%%%%%%%%%%%%%%%%
 % SA Parameters %
@@ -378,9 +374,7 @@ end
 
 % DIVERGING TX 
 sDivTxStart = tx_i;
-% divSSA.focusMM = divSSA.txFnum*divSSA.numEl*Trans.spacingMm;
 divSSA.txFocus = divSSA.txFnum*divSSA.numEl*Trans.spacing;
-% ing;round(divSSA.focusMM/1000/(c/(Trans.frequency*1e6)));
 
 tx_i = tx_i+1;
 TX(tx_i).Origin = [0.0,0.0,0.0];
@@ -393,8 +387,7 @@ TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 % FOCUSED TX 
 sFocTxStart = tx_i;
 focSSA.txFocus = round(focSSA.focusMM/1000/(c/(Trans.frequency*1e6)));
-focSSA.txFnum = focSSA.focusMM/(focSSA.numEl*Trans.spacing); % F/# = z/D
-% focSSA.txFnum*divSSA.numEl*Trans.spacing;
+focSSA.txFnum = focSSA.focusMM/(focSSA.numEl*Trans.spacingMm); % F/# = z/D
 tx_i = tx_i+1;
 TX(tx_i).Origin = [0.0,0.0,0.0];
 TX(tx_i).Apod(:) = 1;
