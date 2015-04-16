@@ -9,7 +9,6 @@ TW = evalin('base', 'TW');
 TX = evalin('base', 'TX');
 rcv_i = evalin('base','ssaRcvStart')+1;
 
-
 ssaPRT = evalin('base','SSA.PRT');
 IM_STATE = evalin('base','IM_STATE');
 SSA_TYPE = evalin('base','SSA_TYPE');

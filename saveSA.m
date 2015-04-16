@@ -28,7 +28,7 @@ clear tmp tmp_rf
 
 rfdata.c = c;
 rfdata.numRcvChannels = 64;
-rfdata.numElementsPerXmt= 64;
+rfdata.numElementsPerXmt= 1;
 rfdata.numXmtRxEvents = nr;
 rfdata.numFrames = Resource.RcvBuffer(4).numFrames;
 rfdata.elementSpacingMM = Trans.spacingMm;

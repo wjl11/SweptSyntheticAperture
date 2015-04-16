@@ -1,5 +1,5 @@
 % ***** P4-2 Swept Synthetic Aperture Image Acquisition Routine *****
-% Version 13.0 (working)
+% Version 14.0 (debugging)
 %
 % Overhaul from original version 10.1 framework 
 %     Git SHA v10.1: c26a26bf91c412d7f06841dca3f03c2e8a702fe9 (working)
@@ -10,7 +10,11 @@
 %
 % Merged master and focused_tx_testing branch with version 13.0 (working) 04/11/15
 % 
-% Latest revision 13.0 03/12/15 - by Will Long
+% Revision 14.0 04/16/15 - by Will Long
+% -Focused Tx SSA added
+% -Focus depths converted to wavelengths (correctly converted to mm when saved)
+%
+% Revision 13.0 03/12/15 - by Will Long
 % -Diverging wave Tx (SSA.numEl option with fixed F/-0.75 virtual source)
 % -PW Tx replaced with 2 element Tx
 % -Save routine options added (options to save or scrap data after SSA acquisition)
@@ -69,13 +73,12 @@ SSA.nAngles = length(SSA.pwAngles);
 
 % DIVERING:
 divSSA.txFnum = -0.75;
-divSSA.txFocus = 0; 
 divSSA.numEl = 12; 
 
 % FOCUSED:
-focSSA.txFocusMM = 30;        % tx focus [mm] 
-focSSA.numEl = numEl;
-focSSA.txFnum = focSSA.txFocusMM/(focSSA.numEl*Trans.spacing); % F/# = z/D
+focSSA.focusMM = 30;        % tx focus [mm] 
+focSSA.numEl = numEl;       % use all elements
+focSSA.txFnum = focSSA.focusMM/(focSSA.numEl*Trans.spacing); % F/# = z/D
 
 %%%%%%%%%%%%%%%%%
 % SA Parameters %
@@ -359,7 +362,8 @@ end
 
 % FULL SA TX 
 saTxStart = tx_i;
-SA.txFocus = SA.txFnum*SA.numEl*Trans.spacing;
+SA.focusMM = SA.txFnum*SA.numEl*Trans.spacing;
+SA.txFocus = round(SA.focusMM/1000/(c/(Trans.frequency*1e6)));
 for n = 1:SA.nRay
     tx_i = tx_i+1;
     TX(tx_i).Origin = [SFormat(1).FirstRayLoc(1)+(n-1+floor(SA.numEl/2))*Trans.spacing, 0.0, 0.0];
@@ -371,7 +375,9 @@ end
 
 % DIVERGING TX 
 sDivTxStart = tx_i;
-divSSA.txFocus = divSSA.txFnum*divSSA.numEl*Trans.spacing;
+divSSA.focusMM = divSSA.txFnum*divSSA.numEl*Trans.spacing;
+divSSA.txFocus = round(divSSA.focusMM/1000/(c/(Trans.frequency*1e6)));
+
 tx_i = tx_i+1;
 TX(tx_i).Origin = [0.0,0.0,0.0];
 TX(tx_i).Apod(:) = 0;
@@ -382,7 +388,8 @@ TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 
 % FOCUSED TX 
 sFocTxStart = tx_i;
-focSSA.txFocus = focSSA.txFnum*divSSA.numEl*Trans.spacing;
+focSSA.txFocus = round(focSSA.focusMM/1000/(c/(Trans.frequency*1e6)));
+% focSSA.txFnum*divSSA.numEl*Trans.spacing;
 tx_i = tx_i+1;
 TX(tx_i).Origin = [0.0,0.0,0.0];
 TX(tx_i).Apod(:) = 1;
@@ -881,14 +888,17 @@ n = n+1;
 for ic = 1:4
     
 %   CASE SPECIFIC PARAMETERS [EDIT]
-    if ic == 1,             
-        SSA_acq = n;
-    elseif ic == 2,         
-        steerSSA_acq = n;
-    elseif ic == 3
-        divSSA_acq = n;
+    switch ic
+        case 1
+            SSA_acq = n;
+        case 2
+            steerSSA_acq = n;
+        case 3 
+            divSSA_acq = n;
+        case 4
+            focSSA_acq = n;
     end
-
+    
     Event(n).info = 'Switch to SA acquire';
     Event(n).tx = 0;         
     Event(n).rcv = 0;       
@@ -935,15 +945,19 @@ for ic = 1:4
     end
     
 %   CASE SPECIFIC PARAMETERS [EDIT]
-    if ic == 1,         
-        SSA_loop = n;
-    elseif ic ==2,
-        steerSSA_loop = n;
-        j=1;
-        steerAngles = zeros(1,Resource.RcvBuffer(2).numFrames);
-    elseif ic == 3,
-        divSSA_loop = n;
+    switch ic
+        case 1
+            SSA_loop = n;
+        case 2
+            steerSSA_loop = n;
+            j=1;
+            steerAngles = zeros(1,Resource.RcvBuffer(2).numFrames);
+        case 3 
+            divSSA_loop = n;
+        case 4
+            focSSA_loop = n;
     end
+    
     
     for i = 1:Resource.RcvBuffer(2).numFrames
         if i > 1
@@ -956,20 +970,26 @@ for ic = 1:4
             n = n+1;
             
 %           CASE SPECIFIC PARAMETERS [EDIT]
-            if ic == 1
-                Event(n).info = 'Acquire planewave SSA RF';
-                Event(n).tx = pwTxStart+1;
-            elseif ic == 2
-                Event(n).info = 'Acquire steered planewave SSA RF';
-                Event(n).tx = spwTxStart+j;
+            
+            switch ic
+                case 1
+                    Event(n).info = 'Acquire planewave SSA RF';
+                    Event(n).tx = pwTxStart+1;
+                case 2
+                    Event(n).info = 'Acquire steered planewave SSA RF';
+                    Event(n).tx = spwTxStart+j;
 
-                steerAngles(i-1) = SSA.pwAngles(j); 
-                j = j+1;
-                if j > SSA.nAngles; j = 1; end
-            elseif ic == 3
-                Event(n).info = 'Acquire diverging SSA RF';
-                Event(n).tx = sDivTxStart+1;
+                    steerAngles(i-1) = SSA.pwAngles(j); 
+                    j = j+1;
+                    if j > SSA.nAngles; j = 1; end
+                case 3
+                    Event(n).info = 'Acquire diverging SSA RF';
+                    Event(n).tx = sDivTxStart+1;
+                case 4
+                    Event(n).info = 'Acquire focused SSA RF';
+                    Event(n).tx = sFocTxStart+1;
             end
+
             Event(n).rcv = i+ssaRcvStart; 
             Event(n).recon = 0; 
             Event(n).process = 0; 
@@ -1105,6 +1125,10 @@ switch SETUP.scanType
         UI(ui).Callback = text2cell('%CB_divSSA');
         ui = ui+1;
         
+        UI(ui).Control = {'UserC3','Style','VsPushButton','Tag','focSSA','Label',['focus (' num2str(focSSA.txFocusMM) ')']};
+        UI(ui).Callback = text2cell('%CB_focSSA');
+        ui = ui+1;
+        
     case 'turntable'
         UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','pwSSA','Label','pw SSA'};
         UI(ui).Callback = text2cell('%CBtable_pwSSA');
@@ -1148,6 +1172,11 @@ return
 init_divSSA(hObject,eventdata)
 return
 %CB_divSSA
+
+%CB_focSSA
+init_focSSA(hObject,eventdata)
+return
+%CB_focSSA
 
 %CB_savePA
 init_savePA(hObject,eventdata)
