@@ -361,8 +361,7 @@ end
 
 % FULL SA TX 
 saTxStart = tx_i;
-SA.focusMM = SA.txFnum*SA.numEl*Trans.spacingMm;
-SA.txFocus = round(SA.focusMM/1000/(c/(Trans.frequency*1e6)));
+SA.txFocus = SA.txFnum*SA.numEl*Trans.spacing;
 for n = 1:SA.nRay
     tx_i = tx_i+1;
     TX(tx_i).Origin = [SFormat(1).FirstRayLoc(1)+(n-1+floor(SA.numEl/2))*Trans.spacing, 0.0, 0.0];
