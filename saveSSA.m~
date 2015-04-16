@@ -18,7 +18,7 @@ switch SSA_TYPE
     case 'pw'
         tx_i = evalin('base','pwTxStart')+1;
         txFocus = 0;
-        rfdata.numElementsPerXmt = 2; % CHANGE IF PW USED IN FUTURE
+        rfdata.numElementsPerXmt = 2;
     case 'steer_pw'
         tx_i = evalin('base','spwTxStart')+1;
         steerAngles = evalin('base','steerAngles');

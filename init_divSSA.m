@@ -10,5 +10,5 @@ assignin('base','Control',Control);
 disp(['Jump to event: ' num2str(divSSA_acq)])
 disp('Initiate diverging SSA imaging.')
 
-SSA_TYPE = 'div_pw';
+SSA_TYPE = 'div';
 assignin('base','SSA_TYPE',SSA_TYPE);
