@@ -1,5 +1,5 @@
 % ***** P4-2 Swept Synthetic Aperture Image Acquisition Routine *****
-% Version 14.0 (debugging)
+% Version 14.2 (debugging)
 %
 % Overhaul from original version 10.1 framework 
 %     Git SHA v10.1: c26a26bf91c412d7f06841dca3f03c2e8a702fe9 (working)
@@ -10,6 +10,10 @@
 %
 % Merged master and focused_tx_testing branch with version 13.0 (working) 04/11/15
 % 
+% Revision 14.2 04/30/15 - by Will Long
+% -GUI buttons added for all imaging modes
+% -XMTspacing save parameter removed for all SSA cases
+%
 % Revision 14.0 04/16/15 - by Will Long
 % -Focused Tx SSA added
 % -Focus depths converted to wavelengths (correctly converted to mm when saved)
@@ -43,7 +47,7 @@ clear all
 %%%%%%%%%%%%%%%%%%%%%%
 % Imaging Case Setup %
 %%%%%%%%%%%%%%%%%%%%%%
-SETUP.simToggle = 0;            % 1 [simulation], 0 [probe connected]
+SETUP.simToggle = 1;            % 1 [simulation], 0 [probe connected]
 SETUP.rs232Toggle = 1;          % 1 [table com on], 0 [table com off]
 SETUP.scanType = 'manual';   
                                 % 'manual' [manual scanning]
@@ -315,7 +319,7 @@ TW.Parameters = [Trans.frequency,.67,2,1]; % *** changed from original code ***
 % **TW(1).Parameters = [36,17,2,1];   % A, B, C, D [old definition of TW]
 
 % TRANSMIT STRUCTURE DEFINITION
-numTxDef = PHASED_B.nRay+1+SSA.nAngles+SA.nRay+1+1;
+numTxDef = PHASED_B.nRay+1+1+SSA.nAngles+SA.nRay+1+1;
 TX = repmat(struct('waveform', 1, ...
                    'Origin', [0,0,0], ...
                    'focus', 0, ... % in wavelengths; 
@@ -346,8 +350,17 @@ end
 pwTxStart = tx_i;
 tx_i = tx_i+1;
 
-TX(tx_i).Apod(:) = 0; % diverging wave edit
-TX(tx_i).Apod(round(numEl/2):round(numEl/2)+1) = 1; % diverging wave edit
+TX(tx_i).Apod(:) = 1;
+TX(tx_i).Delay = computeTXDelays(TX(tx_i));
+
+% 2 ELEMENT DIVERGING TX 
+% - single tx stuct defined for simultaneous firing of 2 centermost
+% elements
+sDiv2TxStart = tx_i;
+tx_i = tx_i+1;
+
+TX(tx_i).Apod(:) = 0; 
+TX(tx_i).Apod(round(numEl/2):round(numEl/2)+1) = 1;
 TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 
 % STEERED PW SSA TX 
@@ -371,7 +384,7 @@ for n = 1:SA.nRay
     TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 end
 
-% DIVERGING TX 
+% MULTI-ELEMENT DIVERGING TX 
 sDivTxStart = tx_i;
 divSSA.txFocus = divSSA.txFnum*divSSA.numEl*Trans.spacing;
 
@@ -385,7 +398,7 @@ TX(tx_i).Delay = computeTXDelays(TX(tx_i));
 
 % FOCUSED TX 
 sFocTxStart = tx_i;
-focSSA.txFocus = round(focSSA.focusMM/1000/(c/(Trans.frequency*1e6)));
+focSSA.txFocus = round(focSSA.focusMM/1000/(c/(Trans.frequency*1e6))); % converted to wl
 focSSA.txFnum = focSSA.focusMM/(focSSA.numEl*Trans.spacingMm); % F/# = z/D
 tx_i = tx_i+1;
 TX(tx_i).Origin = [0.0,0.0,0.0];
@@ -879,10 +892,11 @@ n = n+1;
 %************************ SSA ACQUISITION EVENTS **************************
 % IMAGING CASE 1: PLANEWAVE SSA
 % IMAGING CASE 2: STEERED PLANEWAVE SSA
-% IMAGING CASE 3: DIVERGING WAVE SSA
+% IMAGING CASE 3: MULTI-ELEM DIVERGING WAVE SSA
 % IMAGING CASE 4: FOCUSED SSA
+% IMAGING CASE 5: 2 ELEM DIVERGING WAVE SSA
 
-for ic = 1:4
+for ic = 1:5
     
 %   CASE SPECIFIC PARAMETERS [EDIT]
     switch ic
@@ -894,6 +908,8 @@ for ic = 1:4
             divSSA_acq = n;
         case 4
             focSSA_acq = n;
+        case 5
+            div2SSA_acq = n;
     end
     
     Event(n).info = 'Switch to SA acquire';
@@ -953,6 +969,8 @@ for ic = 1:4
             divSSA_loop = n;
         case 4
             focSSA_loop = n;
+        case 5
+            div2SSA_loop = n;
     end
     
     
@@ -970,21 +988,24 @@ for ic = 1:4
             
             switch ic
                 case 1
-                    Event(n).info = 'Acquire planewave SSA RF';
+                    Event(n).info = 'Acquire planewave SSA';
                     Event(n).tx = pwTxStart+1;
                 case 2
-                    Event(n).info = 'Acquire steered planewave SSA RF';
+                    Event(n).info = 'Acquire steered planewave SSA';
                     Event(n).tx = spwTxStart+j;
 
                     steerAngles(i-1) = SSA.pwAngles(j); 
                     j = j+1;
                     if j > SSA.nAngles; j = 1; end
                 case 3
-                    Event(n).info = 'Acquire diverging SSA RF';
+                    Event(n).info = 'Acquire multi element diverging SSA';
                     Event(n).tx = sDivTxStart+1;
                 case 4
-                    Event(n).info = 'Acquire focused SSA RF';
+                    Event(n).info = 'Acquire focused SSA';
                     Event(n).tx = sFocTxStart+1;
+                case 5
+                    Event(n).info = 'Acquire single element diverging SSA';
+                    Event(n).tx = sDiv2TxStart+1;
             end
 
             Event(n).rcv = i+ssaRcvStart; 
@@ -1100,38 +1121,42 @@ n = n+1;
 %************************ GUI elements ************************************
 ui = 1;
 
-UI(ui).Control = {'UserB3','Style','VsPushButton','Tag','pwImage','Label','Toggle Display'};
+UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','pwImage','Label','Display'};
 UI(ui).Callback = text2cell('%CB_imagingToggle');
 ui = ui+1;
 
-UI(ui).Control = {'UserB2','Style','VsPushButton','Tag','savePA','Label','PA'};
+UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','savePA','Label','PA'};
 UI(ui).Callback = text2cell('%CB_savePA');
 ui = ui+1;
 
-UI(ui).Control = {'UserB1','Style','VsPushButton','Tag','saveSA','Label','SA'}; % change UI location
+UI(ui).Control = {'UserC3','Style','VsPushButton','Tag','saveSA','Label','SA'}; % change UI location
 UI(ui).Callback = text2cell('%CB_saveSA');
 ui = ui+1;
 
 switch SETUP.scanType
     case 'manual'
-        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','pwSSA','Label','div (2)'};
+        UI(ui).Control = {'UserB1','Style','VsPushButton','Tag','pwSSA','Label','PW'};
         UI(ui).Callback = text2cell('%CB_pwSSA');
         ui = ui+1;
 
-        UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','divSSA','Label',['div (' num2str(divSSA.numEl) ')']};
+        UI(ui).Control = {'UserB2','Style','VsPushButton','Tag','divSSA','Label',['Div (' num2str(divSSA.numEl) ')']};
         UI(ui).Callback = text2cell('%CB_divSSA');
         ui = ui+1;
         
-        UI(ui).Control = {'UserC3','Style','VsPushButton','Tag','focSSA','Label',['focus (' num2str(focSSA.focusMM/10) 'cm)']};
+        UI(ui).Control = {'UserB4','Style','VsPushButton','Tag','focSSA','Label',['Foc (' num2str(focSSA.focusMM/10) 'cm)']};
         UI(ui).Callback = text2cell('%CB_focSSA');
         ui = ui+1;
         
+        UI(ui).Control = {'UserB3','Style','VsPushButton','Tag','div2SSA','Label',['Div (2)']};
+        UI(ui).Callback = text2cell('%CB_div2SSA');
+        ui = ui+1;
+        
     case 'turntable'
-        UI(ui).Control = {'UserC2','Style','VsPushButton','Tag','pwSSA','Label','pw SSA'};
+        UI(ui).Control = {'UserB2','Style','VsPushButton','Tag','pwSSA','Label','pw SSA'};
         UI(ui).Callback = text2cell('%CBtable_pwSSA');
         ui = ui+1;
 
-        UI(ui).Control = {'UserC1','Style','VsPushButton','Tag','divSSA','Label','div SSA'};
+        UI(ui).Control = {'UserB1','Style','VsPushButton','Tag','divSSA','Label','div SSA'};
         UI(ui).Callback = text2cell('%CBtable_divSSA');
         ui = ui+1;
 
@@ -1169,6 +1194,11 @@ return
 init_divSSA(hObject,eventdata)
 return
 %CB_divSSA
+
+%CB_div2SSA
+init_div2SSA(hObject,eventdata)
+return
+%CB_div2SSA
 
 %CB_focSSA
 init_focSSA(hObject,eventdata)

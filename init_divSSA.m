@@ -8,7 +8,7 @@ evalin('base','Resource.Parameters.startEvent = divSSA_acq;');
 assignin('base','Control',Control);
 
 disp(['Jump to event: ' num2str(divSSA_acq)])
-disp('Initiate diverging SSA imaging.')
+disp('Initiate multi-element diverging SSA imaging.')
 
-SSA_TYPE = 'div';
+SSA_TYPE = 'div_multi';
 assignin('base','SSA_TYPE',SSA_TYPE);

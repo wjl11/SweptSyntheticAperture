@@ -17,14 +17,14 @@ switch SSA_TYPE
     case 'pw'
         tx_i = evalin('base','pwTxStart')+1;
         txFocus = 0;
-        rfdata.numElementsPerXmt = 2; % CHANGE IF PW USED IN FUTURE
+        rfdata.numElementsPerXmt = length(find(TX(tx_i).Apod==1));
     case 'steer_pw'
         tx_i = evalin('base','spwTxStart')+1;
         steerAngles = evalin('base','steerAngles');
         rfdata.steerAngles = steerAngles;
         txFocus = 0;
-        rfdata.numElementsPerXmt = 64;
-    case 'div'
+        rfdata.numElementsPerXmt = length(find(TX(tx_i).Apod==1));
+    case 'div_multi'
         tx_i = evalin('base','sDivTxStart')+1;
         txFocus = evalin('base', 'divSSA.txFocus');
         rfdata.numElementsPerXmt = evalin('base', 'divSSA.numEl');
@@ -32,6 +32,10 @@ switch SSA_TYPE
         tx_i = evalin('base','sFocTxStart')+1;
         txFocus = evalin('base', 'focSSA.txFocus');
         rfdata.numElementsPerXmt = evalin('base', 'focSSA.numEl');
+    case 'div_single'
+        tx_i = evalin('base','sDiv2TxStart')+1;
+        txFocus = 0;
+        rfdata.numElementsPerXmt = length(find(TX(tx_i).Apod==1));
 end
 
 persistent nframeSSA
@@ -47,7 +51,7 @@ rfdata.numRcvChannels = 64;
 rfdata.numFrames = Resource.RcvBuffer(2).numFrames;
 rfdata.numXmtRxEvents = rfdata.numFrames;
 rfdata.elementSpacingMM = Trans.spacingMm;
-rfdata.XMTspacingMM = rfdata.elementSpacingMM;
+% rfdata.XMTspacingMM = rfdata.elementSpacingMM;
 rfdata.samplingRateMHz = Trans.frequency*Receive(rcv_i).samplesPerWave;
 rfdata.frequencyMHz = Trans.frequency;
 rfdata.frameRatekHz = 1/(ssaPRT*1e-3);
@@ -58,17 +62,18 @@ rfdata.timeZero = -(SFormat(2).startDepth+...
 rfdata.focus = txFocus*c/(Trans.frequency*1e6);
 rfdata.type = SSA_TYPE;
 
-if strcmpi(label,'db') || strcmpi(label,'')
-    disp('[DEBUG MODE] No file saved.')
+% if strcmpi(label,'db') || strcmpi(label,'')
+%     disp('[DEBUG MODE] No file saved.')
+% else
+% 
+% end
+saveOpt = input('Save SSA data [y/n]? ','s');
+if strcmpi(saveOpt,'y')
+    disp(['Saving SSA data to ' path '.mat']);
+    save([path '.mat'],'rf','rfdata','-v7.3');
+    disp(['SSA data saved to ' path '.mat']);
 else
-    saveOpt = input('Save SSA data [y/n]? ','s')
-    if strcmpi(saveOpt,'y')
-        disp(['Saving SSA data to ' path '.mat']);
-        save([path '.mat'],'rf','rfdata','-v7.3');
-        disp(['SSA data saved to ' path '.mat']);
-    else
-        disp('SSA data not saved.');
-    end
+    disp('SSA data not saved.');
 end
 
 nframeSSA = nframeSSA+1;
