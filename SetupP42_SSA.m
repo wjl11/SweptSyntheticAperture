@@ -55,7 +55,7 @@ SETUP.timeout = 15000;          % time to wait for manual rotation [ms]
 %%%%%%%%%%%%%%%%%%%%%%
 maxVoltage = 50;            % max voltage used for transmit
 numEl = 64;                 % number of physical elements (1/2 tot channel)
-c = 1540;                   % speed of sound (changed from 1540)
+c = 1515;                   % speed of sound (changed from 1540)
 
 %%%%%%%%%%%%%%%%%%
 % SSA Parameters %
