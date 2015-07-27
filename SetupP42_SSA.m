@@ -47,8 +47,8 @@ clear all
 %%%%%%%%%%%%%%%%%%%%%%
 % Imaging Case Setup %
 %%%%%%%%%%%%%%%%%%%%%%
-SETUP.simToggle = 1;            % 1 [simulation], 0 [probe connected]
-SETUP.rs232Toggle = 1;          % 1 [table com on], 0 [table com off]
+SETUP.simToggle = 0;            % 1 [simulation], 0 [probe connected]
+SETUP.rs232Toggle = 0;          % 1 [table com on], 0 [table com off]
 SETUP.scanType = 'manual';   
                                 % 'manual' [manual scanning]
                                 % 'turntable' [turn table scanning]
@@ -59,7 +59,7 @@ SETUP.timeout = 15000;          % time to wait for manual rotation [ms]
 %%%%%%%%%%%%%%%%%%%%%%
 maxVoltage = 50;            % max voltage used for transmit
 numEl = 64;                 % number of physical elements (1/2 tot channel)
-c = 1515;                   % speed of sound (changed from 1540)
+c = 1480;                   % speed of sound (changed from 1540)
 
 %%%%%%%%%%%%%%%%%%
 % SSA Parameters %
@@ -190,7 +190,7 @@ if SETUP.rs232Toggle ~= 1, disp('Serial communication: OFF')
 else warning('Serial communication: ON'), end
 
 % DEFINE TRANSDUCER
-freqMHz = 3.0; % changed from 2.5
+freqMHz = 2.976; % changed from 2.5
 Trans.name = 'P4-2';
 Trans.frequency = freqMHz;          % not needed if using default f0
 Trans.units = 'wavelengths'; 
